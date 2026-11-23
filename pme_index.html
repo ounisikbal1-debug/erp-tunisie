@@ -2,301 +2,2343 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>SAFE PME Express — Facturation, Paie & e-Fatoura TEIF</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAFE PME Express 2.0 - Progiciel de Gestion Intégré Tunisie</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --safe-blue: #0f1e3a;
-            --safe-gold: #d4af37;
+            --primary: #0d6efd;
+            --primary-dark: #0a58ca;
+            --sidebar-bg: #1e293b;
+            --sidebar-color: #cbd5e1;
+            --sidebar-active: #3b82f6;
+            --bg-light: #f8fafc;
         }
-        body { background-color: #f4f6fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .navbar-safe { background: linear-gradient(135deg, #0f1e3a 0%, #1e3a8a 100%); color: white; padding: 14px 24px; }
-        .card-custom { border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .badge-safe { background-color: #d97706; color: white; font-weight: 600; padding: 4px 8px; border-radius: 4px; }
-        .nav-pills .nav-link.active { background-color: #2563eb; font-weight: 600; }
-        .table-custom th { background-color: #0f172a; color: white; font-size: 13px; }
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-light);
+            overflow-x: hidden;
+        }
+        #sidebar {
+            width: 260px;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: var(--sidebar-bg);
+            color: var(--sidebar-color);
+            overflow-y: auto;
+            z-index: 1000;
+            transition: all 0.3s;
+        }
+        #sidebar .brand {
+            padding: 20px 15px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #fff;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #sidebar .nav-section {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05rem;
+            color: #94a3b8;
+            padding: 12px 15px 4px 15px;
+            font-weight: 600;
+        }
+        #sidebar .nav-link {
+            color: var(--sidebar-color);
+            padding: 9px 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.88rem;
+            border-radius: 6px;
+            margin: 2px 8px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: 0.2s;
+        }
+        #sidebar .nav-link:hover {
+            background-color: rgba(255,255,255,0.08);
+            color: #fff;
+        }
+        #sidebar .nav-link.active {
+            background-color: var(--sidebar-active);
+            color: #fff;
+            font-weight: 600;
+        }
+        #content {
+            margin-left: 260px;
+            padding: 25px 30px;
+            min-height: 100vh;
+        }
+        .screen-view {
+            display: none;
+        }
+        .screen-view.active {
+            display: block;
+            animation: fadeIn 0.2s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card {
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+            padding: 12px 18px;
+        }
+        .stat-card {
+            border-left: 4px solid var(--primary);
+            transition: transform 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+        .badge-pill {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+        }
+        .table th {
+            font-weight: 600;
+            color: #475569;
+            background-color: #f8fafc;
+            font-size: 0.84rem;
+        }
+        .table td {
+            font-size: 0.86rem;
+            vertical-align: middle;
+        }
+        .top-navbar {
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 10px 25px;
+            margin: -25px -30px 25px -30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn-sm {
+            font-size: 0.8rem;
+            padding: 4px 10px;
+        }
     </style>
 </head>
 <body>
-    <nav class="navbar-safe d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center gap-3">
-            <span style="font-size: 28px;">🚀</span>
+
+    <!-- SIDEBAR AVEC LES 16 ÉCRANS -->
+    <div id="sidebar">
+        <div class="brand">
+            <i class="fa-solid fa-cube text-primary fa-lg"></i>
             <div>
-                <h4 class="m-0 fw-bold">SAFE PME Express & E-Fatoura TEIF</h4>
-                <small class="text-white-50">Facturation rapide, Paie tunisienne, Comptabilite en Dinars Millimes & E-Facture Officielle</small>
+                <div>SAFE PME Express</div>
+                <div style="font-size: 0.65rem; color: #94a3b8; font-weight: normal;">Édition Tunisie 2.0</div>
             </div>
         </div>
-        <div class="text-end">
-            <span class="badge-safe" id="hw-badge">Verrou Hardware ID : {{HARDWARE_ID}}</span>
-            <div class="small text-white-50 mt-1">Edition Autonome 2026 | Port 8006</div>
+
+        <div class="nav-section">Gestion Commerciale & Stock</div>
+        <a class="nav-link active" onclick="showScreen('screen-dashboard')">
+            <i class="fa-solid fa-chart-line fa-fw"></i> 1. Tableau de bord
+        </a>
+        <a class="nav-link" onclick="showScreen('screen-factures')">
+            <i class="fa-solid fa-file-invoice-dollar fa-fw"></i> 2. Factures clients
+        </a>
+        <a class="nav-link" onclick="showScreen('screen-achats')">
+            <i class="fa-solid fa-cart-shopping fa-fw"></i> 3. Achats fournisseurs
+        </a>
+        <a class="nav-link" onclick="showScreen('screen-tiers')">
+            <i class="fa-solid fa-users fa-fw"></i> 4. Tiers (Partenaires)
+        </a>
+        <a class="nav-link" onclick="showScreen('screen-articles')">
+            <i class="fa-solid fa-box-open fa-fw"></i> 5. Articles & Tarifs
+        </a>
+        <a class="nav-link" onclick="showScreen('screen-stock')">
+            <i class="fa-solid fa-warehouse fa-fw"></i> 6. Stock & Alertes
+        </a>
+
+        <div class="nav-section">Ressources Humaines</div>
+        <a class="nav-link" onclick="showScreen('screen-salaries')">
+            <i class="fa-solid fa-id-card-clip fa-fw"></i> 7. Salariés
+        </a>
+        <a class="nav-link" onclick="showScreen('screen-paie')">
+            <i class="fa-solid fa-money-check-dollar fa-fw"></i> 8. Paie & IRPP / CNSS
+        </a>
+
+        <div class="nav-section">Comptabilité & Fiscalité</div>
+        <a class="nav-link" onclick="showScreen('screen-comptabilite')">
+            <i class="fa-solid fa-book-journal-whills fa-fw"></i> 9. Comptabilité (PCN)
+        </a>
+        <a class="nav-link" onclick="showScreen('screen-tva')">
+            <i class="fa-solid fa-percent fa-fw"></i> 10. Déclaration TVA
+        </a>
+        <a class="nav-link" onclick="showScreen('screen-fiscalite')">
+            <i class="fa-solid fa-landmark fa-fw"></i> 11. Fiscalité (IS, TCL, Timbre)
+        </a>
+        <a class="nav-link" onclick="showScreen('screen-immobilisations')">
+            <i class="fa-solid fa-building-circle-check fa-fw"></i> 12. Immobilisations
+        </a>
+        <a class="nav-link" onclick="showScreen('screen-tresorerie')">
+            <i class="fa-solid fa-vault fa-fw"></i> 13. Trésorerie & Banques
+        </a>
+        <a class="nav-link" onclick="showScreen('screen-declarations')">
+            <i class="fa-solid fa-file-contract fa-fw"></i> 14. Déclarations Fiscales
+        </a>
+        <a class="nav-link" onclick="showScreen('screen-efatoura')">
+            <i class="fa-solid fa-file-code fa-fw"></i> 15. e-Fatoura / TTN
+        </a>
+
+        <div class="nav-section">Système & Configuration</div>
+        <a class="nav-link" onclick="showScreen('screen-settings')">
+            <i class="fa-solid fa-sliders fa-fw"></i> 16. Paramètres & Sécurité
+        </a>
+
+        <div style="padding: 20px 15px; font-size: 0.72rem; color: #64748b; border-top: 1px solid #334155; margin-top: 15px;">
+            Port : 8006 (Autonome)<br>
+            Licence HMAC-SHA256 Active
         </div>
-    </nav>
+    </div>
 
-    <div class="container-fluid py-4 px-4">
-        <ul class="nav nav-pills mb-4 gap-2" id="pmeTabs">
-            <li class="nav-item"><button class="nav-link active" onclick="showTab('tab-factures', event)">🧾 Facturation & E-Fatoura TEIF</button></li>
-            <li class="nav-item"><button class="nav-link" onclick="showTab('tab-paie', event)">💵 Paie & Salaries (IRPP / CNSS)</button></li>
-            <li class="nav-item"><button class="nav-link" onclick="showTab('tab-settings', event)">⚙️ Parametres & Taux SAFE (Modifiables)</button></li>
-        </ul>
+    <!-- MAIN CONTENT -->
+    <div id="content">
+        <!-- Top Navbar -->
+        <div class="top-navbar">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary">SAFE Suite 2026</span>
+                <span class="text-muted" style="font-size: 0.85rem;" id="nav-company-name">Ma Société SARL</span>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-success"><i class="fa-solid fa-signal me-1"></i> Mode Autonome Connecté</span>
+                <span style="font-size: 0.85rem;"><i class="fa-solid fa-user-tie me-1"></i> Admin SAFE</span>
+            </div>
+        </div>
 
-        <!-- TAB 1 : FACTURES -->
-        <div id="tab-factures" class="tab-pane-custom">
-            <div class="card card-custom p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="fw-bold m-0">Factures Clients Recentes & Fichiers XML e-Fatoura TEIF</h5>
-                    <button class="btn btn-primary btn-sm" onclick="alert('Module de creation de facture express')">+ Nouvelle Facture</button>
+        <!-- ==================== ÉCRAN 1 : TABLEAU DE BORD ==================== -->
+        <div id="screen-dashboard" class="screen-view active">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0"><i class="fa-solid fa-chart-line text-primary me-2"></i>1. Tableau de bord exécutif</h4>
+                <button class="btn btn-sm btn-outline-primary" onclick="loadDashboard()"><i class="fa-solid fa-arrows-rotate me-1"></i> Actualiser</button>
+            </div>
+            
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="card stat-card p-3" style="border-left-color: #0d6efd;">
+                        <div class="text-muted small">Chiffre d'Affaires (TTC)</div>
+                        <h4 class="mt-1 mb-0 text-primary" id="kpi-ca">0.000 TND</h4>
+                        <div class="small text-muted mt-1"><i class="fa-solid fa-arrow-up text-success"></i> Exercice en cours</div>
+                    </div>
                 </div>
-                <table class="table table-hover table-custom table-bordered">
-                    <thead>
-                        <tr>
-                            <th>N° Piece</th>
-                            <th>Client</th>
-                            <th>Matricule Fiscal</th>
-                            <th>Date</th>
-                            <th class="text-end">Total HT (TND)</th>
-                            <th class="text-end">TVA (TND)</th>
-                            <th class="text-end">Timbre</th>
-                            <th class="text-end">Total TTC (TND)</th>
-                            <th class="text-center">Action e-Fatoura</th>
-                        </tr>
-                    </thead>
-                    <tbody id="invoices-tbody">
-                        <tr><td colspan="9" class="text-center">Chargement...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- TAB 2 : PAIE -->
-        <div id="tab-paie" class="tab-pane-custom d-none">
-            <div class="card card-custom p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="fw-bold m-0">Livre de Paie — Bareme 8 Tranches & Declarations Sociales</h5>
-                    <button class="btn btn-success btn-sm" onclick="alert('Calcul mensuel valide')">🔄 Calculer les Bulletins du Mois</button>
+                <div class="col-md-3">
+                    <div class="card stat-card p-3" style="border-left-color: #dc3545;">
+                        <div class="text-muted small">Charges & Achats (TTC)</div>
+                        <h4 class="mt-1 mb-0 text-danger" id="kpi-charges">0.000 TND</h4>
+                        <div class="small text-muted mt-1">Fournisseurs & achats</div>
+                    </div>
                 </div>
-                <table class="table table-hover table-custom table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Matricule</th>
-                            <th>Salarie</th>
-                            <th>CIN</th>
-                            <th class="text-end">Salaire Brut</th>
-                            <th class="text-end">CNSS Salariale (9.68%)</th>
-                            <th class="text-end">IRPP</th>
-                            <th class="text-end">CSS (0.5%)</th>
-                            <th class="text-end">Net a Payer (TND)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="payroll-tbody">
-                        <tr><td colspan="8" class="text-center">Chargement...</td></tr>
-                    </tbody>
-                </table>
+                <div class="col-md-3">
+                    <div class="card stat-card p-3" style="border-left-color: #198754;">
+                        <div class="text-muted small">Résultat Net Estimé</div>
+                        <h4 class="mt-1 mb-0 text-success" id="kpi-resultat">0.000 TND</h4>
+                        <div class="small text-muted mt-1">Avant IS & acomptes</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card p-3" style="border-left-color: #0dcaf0;">
+                        <div class="text-muted small">Solde Trésorerie Total</div>
+                        <h4 class="mt-1 mb-0 text-info" id="kpi-tresorerie">0.000 TND</h4>
+                        <div class="small text-muted mt-1">Banques STB, BIAT & Caisse</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>Évolution du Chiffre d'Affaires Mensuel (TND)</span>
+                            <span class="badge bg-secondary">12 derniers mois</span>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="chartCA" height="110"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">Indicateurs Opérationnels</div>
+                        <div class="card-body p-0">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="fa-solid fa-users text-primary me-2"></i> Clients actifs</span>
+                                    <span class="badge bg-primary rounded-pill" id="kpi-clients">0</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="fa-solid fa-truck text-secondary me-2"></i> Fournisseurs actifs</span>
+                                    <span class="badge bg-secondary rounded-pill" id="kpi-fournisseurs">0</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="fa-solid fa-boxes-stacked text-warning me-2"></i> Articles catalogue</span>
+                                    <span class="badge bg-warning rounded-pill text-dark" id="kpi-articles">0</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="fa-solid fa-triangle-exclamation text-danger me-2"></i> Alertes Rupture Stock</span>
+                                    <span class="badge bg-danger rounded-pill" id="kpi-stock-alertes">0</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="fa-solid fa-user-group text-info me-2"></i> Effectif Salariés</span>
+                                    <span class="badge bg-info rounded-pill" id="kpi-salaries">0</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="fa-solid fa-clock text-danger me-2"></i> Factures à Encaisser</span>
+                                    <span class="badge bg-light text-danger fw-bold" id="kpi-impayees">0.000 TND</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- TAB 3 : PARAMETRES MODIFIABLES -->
-        <div id="tab-settings" class="tab-pane-custom d-none">
-            <div class="card card-custom p-4">
-                <h5 class="fw-bold mb-3">Configuration & Taux Legaux SAFE ERP (Dynamiquement Modifiables)</h5>
-                <form id="settingsForm" onsubmit="saveSettings(event)">
+        <!-- ==================== ÉCRAN 2 : FACTURES CLIENTS ==================== -->
+        <div id="screen-factures" class="screen-view">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0"><i class="fa-solid fa-file-invoice-dollar text-primary me-2"></i>2. Factures Clients</h4>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNewFacture"><i class="fa-solid fa-plus me-1"></i> Nouvelle Facture</button>
+            </div>
+
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>N° Facture</th>
+                                    <th>Date</th>
+                                    <th>Client</th>
+                                    <th class="text-end">Total HT</th>
+                                    <th class="text-end">TVA</th>
+                                    <th class="text-end">Timbre</th>
+                                    <th class="text-end">Total TTC</th>
+                                    <th>Statut</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-factures-body">
+                                <tr><td colspan="9" class="text-center py-4 text-muted">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== ÉCRAN 3 : ACHATS FOURNISSEURS ==================== -->
+        <div id="screen-achats" class="screen-view">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0"><i class="fa-solid fa-cart-shopping text-primary me-2"></i>3. Achats Fournisseurs</h4>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNewAchat"><i class="fa-solid fa-plus me-1"></i> Nouvel Achat</button>
+            </div>
+
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>N° Bon / Facture</th>
+                                    <th>Date</th>
+                                    <th>Fournisseur</th>
+                                    <th class="text-end">Total HT</th>
+                                    <th class="text-end">TVA Déductible</th>
+                                    <th class="text-end">Total TTC</th>
+                                    <th>Statut</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-achats-body">
+                                <tr><td colspan="8" class="text-center py-4 text-muted">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== ÉCRAN 4 : TIERS (CLIENTS & FOURNISSEURS) ==================== -->
+        <div id="screen-tiers" class="screen-view">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0"><i class="fa-solid fa-users text-primary me-2"></i>4. Tiers & Partenaires</h4>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNewTier"><i class="fa-solid fa-user-plus me-1"></i> Nouveau Tiers</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button class="btn btn-outline-primary active" onclick="filterTiers('')">Tous</button>
+                        <button class="btn btn-outline-primary" onclick="filterTiers('client')">Clients</button>
+                        <button class="btn btn-outline-primary" onclick="filterTiers('fournisseur')">Fournisseurs</button>
+                    </div>
+                    <input type="text" class="form-control form-control-sm" style="width: 250px;" placeholder="Recherche raison sociale..." oninput="searchTiers(this.value)">
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Raison Sociale</th>
+                                    <th>Matricule Fiscal</th>
+                                    <th>Ville</th>
+                                    <th>Téléphone</th>
+                                    <th>Email</th>
+                                    <th class="text-end">Solde Compte</th>
+                                    <th class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-tiers-body">
+                                <tr><td colspan="8" class="text-center py-4 text-muted">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== ÉCRAN 5 : ARTICLES & TARIFS ==================== -->
+        <div id="screen-articles" class="screen-view">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0"><i class="fa-solid fa-box-open text-primary me-2"></i>5. Articles & Tarifs</h4>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNewArticle"><i class="fa-solid fa-plus me-1"></i> Nouvel Article</button>
+            </div>
+
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Désignation</th>
+                                    <th>Famille</th>
+                                    <th>Unité</th>
+                                    <th class="text-end">Prix Vente HT</th>
+                                    <th class="text-end">Taux TVA</th>
+                                    <th class="text-end">Stock Actuel</th>
+                                    <th class="text-end">Stock Min</th>
+                                    <th class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-articles-body">
+                                <tr><td colspan="9" class="text-center py-4 text-muted">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== ÉCRAN 6 : STOCK & ALERTES ==================== -->
+        <div id="screen-stock" class="screen-view">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0"><i class="fa-solid fa-warehouse text-primary me-2"></i>6. Stock & Mouvements</h4>
+                <button class="btn btn-warning text-dark" data-bs-toggle="modal" data-bs-target="#modalMouvementStock"><i class="fa-solid fa-right-left me-1"></i> Enregistrer Mouvement</button>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-12">
+                    <div class="card border-danger">
+                        <div class="card-header bg-danger text-white">
+                            <i class="fa-solid fa-triangle-exclamation me-2"></i> Articles sous seuil d'alerte (Stock Critique)
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-sm mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Code</th>
+                                        <th>Désignation</th>
+                                        <th class="text-end">Stock Réel</th>
+                                        <th class="text-end">Seuil Min</th>
+                                        <th>Statut</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-stock-alertes-body">
+                                    <tr><td colspan="5" class="text-center py-3 text-muted">Aucune alerte de rupture détectée.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Historique des Mouvements de Stock</div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Article</th>
+                                    <th>Type</th>
+                                    <th class="text-end">Quantité</th>
+                                    <th>Référence</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-stock-mouvements-body">
+                                <tr><td colspan="6" class="text-center py-4 text-muted">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== ÉCRAN 7 : SALARIÉS ==================== -->
+        <div id="screen-salaries" class="screen-view">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0"><i class="fa-solid fa-id-card-clip text-primary me-2"></i>7. Salariés & Contrats</h4>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNewSalarie"><i class="fa-solid fa-user-plus me-1"></i> Nouveau Salarié</button>
+            </div>
+
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Matricule</th>
+                                    <th>Nom & Prénom</th>
+                                    <th>CIN</th>
+                                    <th>Poste</th>
+                                    <th>Département</th>
+                                    <th>Contrat</th>
+                                    <th class="text-end">Salaire Base</th>
+                                    <th>Date Embauche</th>
+                                    <th class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-salaries-body">
+                                <tr><td colspan="9" class="text-center py-4 text-muted">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== ÉCRAN 8 : PAIE & IRPP / CNSS ==================== -->
+        <div id="screen-paie" class="screen-view">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0"><i class="fa-solid fa-money-check-dollar text-primary me-2"></i>8. Paie & Déclarations Sociales</h4>
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalCalculPaie"><i class="fa-solid fa-calculator me-1"></i> Calculer un Bulletin</button>
+            </div>
+
+            <div class="alert alert-info py-2" style="font-size: 0.85rem;">
+                <i class="fa-solid fa-info-circle me-1"></i> Paramètres en vigueur : CNSS Salariale <strong>9.68%</strong> | CNSS Patronale <strong>17.07%</strong> | CSS <strong>0.5%</strong> | IRPP barème progressif <strong>8 tranches</strong> | TFP <strong>1%</strong> | FOPROLOS <strong>1%</strong>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Historique des Bulletins Émis</div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Mois / Année</th>
+                                    <th>Matricule</th>
+                                    <th>Salarié</th>
+                                    <th class="text-end">Brut</th>
+                                    <th class="text-end">CNSS 9.68%</th>
+                                    <th class="text-end">CSS 0.5%</th>
+                                    <th class="text-end">IRPP</th>
+                                    <th class="text-end fw-bold text-success">Net à Payer</th>
+                                    <th class="text-end text-muted">Charges Patr.</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-paie-body">
+                                <tr><td colspan="9" class="text-center py-4 text-muted">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== ÉCRAN 9 : COMPTABILITÉ (PLAN COMPTABLE TUNISIEN) ==================== -->
+        <div id="screen-comptabilite" class="screen-view">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0"><i class="fa-solid fa-book-journal-whills text-primary me-2"></i>9. Comptabilité Générale (PCN)</h4>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNewEcriture"><i class="fa-solid fa-plus me-1"></i> Nouvelle Écriture</button>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <div class="card">
+                        <div class="card-header">Plan Comptable Général Tunisien (Classes 1 à 7)</div>
+                        <div class="card-body p-0" style="max-height: 480px; overflow-y: auto;">
+                            <table class="table table-sm table-striped mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Compte</th>
+                                        <th>Intitulé</th>
+                                        <th class="text-end">Solde (TND)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-comptes-body">
+                                    <tr><td colspan="3" class="text-center py-3 text-muted">Chargement...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div class="card">
+                        <div class="card-header">Journal des Écritures en Partie Double</div>
+                        <div class="card-body p-0" style="max-height: 480px; overflow-y: auto;">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Jnl</th>
+                                        <th>Libellé</th>
+                                        <th>Débit</th>
+                                        <th>Crédit</th>
+                                        <th class="text-end">Montant</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-ecritures-body">
+                                    <tr><td colspan="6" class="text-center py-3 text-muted">Chargement...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== ÉCRAN 10 : TVA ==================== -->
+        <div id="screen-tva" class="screen-view">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0"><i class="fa-solid fa-percent text-primary me-2"></i>10. Déclaration & Suivi de la TVA</h4>
+                <button class="btn btn-sm btn-outline-primary" onclick="loadTVA()"><i class="fa-solid fa-arrows-rotate me-1"></i> Recalculer</button>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="card p-3 border-primary">
+                        <div class="text-muted small">TVA Collectée (Ventes & Prestations)</div>
+                        <h3 class="text-primary mt-1" id="tva-col-val">0.000 TND</h3>
+                        <div class="small text-muted">Sur factures validées</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card p-3 border-secondary">
+                        <div class="text-muted small">TVA Déductible (Achats & Frais)</div>
+                        <h3 class="text-secondary mt-1" id="tva-ded-val">0.000 TND</h3>
+                        <div class="small text-muted">Sur achats fournisseurs</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card p-3" id="tva-card-solde" style="border-width: 2px;">
+                        <div class="text-muted small">Solde TVA Net (À Décaisser / Crédit)</div>
+                        <h3 class="mt-1" id="tva-net-val">0.000 TND</h3>
+                        <div class="small text-muted" id="tva-status-text">Position fiscale</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Grille des Taux Légaux en Tunisie</div>
+                <div class="card-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Taux TVA</th>
+                                <th>Champ d'application légal</th>
+                                <th>Facturation</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="badge bg-primary">19 %</span></td>
+                                <td>Taux normal (Marchandises, matériels, prestations standards)</td>
+                                <td>Actif par défaut</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-info text-dark">13 %</span></td>
+                                <td>Taux réduit (Professions libérales, informatique, ingénierie)</td>
+                                <td>Actif</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-warning text-dark">7 %</span></td>
+                                <td>Taux réduit (Produits pharmaceutiques, artisanat, hôtellerie)</td>
+                                <td>Actif</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-secondary">0 %</span></td>
+                                <td>Exonéré / Exportations directes</td>
+                                <td>Sur attestation</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== ÉCRAN 11 : FISCALITÉ ==================== -->
+        <div id="screen-fiscalite" class="screen-view">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0"><i class="fa-solid fa-landmark text-primary me-2"></i>11. Fiscalité des Entreprises</h4>
+                <button class="btn btn-sm btn-outline-primary" onclick="loadFiscalite()"><i class="fa-solid fa-arrows-rotate me-1"></i> Actualiser</button>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="card p-3">
+                        <div class="text-muted small">Bénéfice Fiscal Estimé</div>
+                        <h4 class="text-dark mt-1" id="fisc-benefice">0.000 TND</h4>
+                        <div class="small text-muted">CA - Charges - Salaires</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card p-3 border-danger">
+                        <div class="text-muted small">Impôt sur les Sociétés (IS)</div>
+                        <h4 class="text-danger mt-1" id="fisc-is">0.000 TND</h4>
+                        <div class="small text-muted" id="fisc-taux-is">Taux : 15%</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card p-3 border-warning">
+                        <div class="text-muted small">TCL (0.2% CA Local)</div>
+                        <h4 class="text-warning text-dark mt-1" id="fisc-tcl">0.000 TND</h4>
+                        <div class="small text-muted">Taxe sur Collectivités Locales</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card p-3 border-info">
+                        <div class="text-muted small">Droits de Timbre Fiscal</div>
+                        <h4 class="text-info mt-1" id="fisc-timbre">0.000 TND</h4>
+                        <div class="small text-muted">1.000 TND / facture</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Synthèse des Obligations Fiscales Annuelles</div>
+                <div class="card-body">
+                    <p class="text-muted small">Calculé automatiquement selon le Code de l'IRPP et de l'IS tunisien :</p>
+                    <ul class="list-group">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Impôt sur les Sociétés (IS PME à 15% ou Standard à 20%)</span>
+                            <span class="badge bg-danger" id="fisc-summary-is">0.000 TND</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Acomptes Provisionnels (1er, 2ème et 3ème acompte - 30% chacun)</span>
+                            <span class="badge bg-secondary" id="fisc-summary-acomptes">3 x 0.000 TND</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Total des taxes professionnelles annuelles estimées</span>
+                            <span class="badge bg-dark fw-bold" id="fisc-summary-total">0.000 TND</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== ÉCRAN 12 : IMMOBILISATIONS ==================== -->
+        <div id="screen-immobilisations" class="screen-view">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0"><i class="fa-solid fa-building-circle-check text-primary me-2"></i>12. Immobilisations & Amortissements</h4>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNewImmo"><i class="fa-solid fa-plus me-1"></i> Nouvelle Immo</button>
+            </div>
+
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Désignation</th>
+                                    <th>Famille</th>
+                                    <th>Date Acq.</th>
+                                    <th class="text-end">Valeur Origine</th>
+                                    <th class="text-end">Taux %</th>
+                                    <th class="text-end">Amort. Annuel</th>
+                                    <th class="text-end">Amort. Cumulé</th>
+                                    <th class="text-end fw-bold text-primary">VNC</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-immo-body">
+                                <tr><td colspan="9" class="text-center py-4 text-muted">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== ÉCRAN 13 : TRÉSORERIE ==================== -->
+        <div id="screen-tresorerie" class="screen-view">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0"><i class="fa-solid fa-vault text-primary me-2"></i>13. Trésorerie & Banques</h4>
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalMvtTresorerie"><i class="fa-solid fa-plus me-1"></i> Enregistrer Opération</button>
+            </div>
+
+            <div class="row g-3 mb-4" id="tresorerie-cards-container">
+                <!-- injecté dynamiquement -->
+            </div>
+
+            <div class="card">
+                <div class="card-header">Derniers Mouvements de Trésorerie</div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Compte</th>
+                                    <th>Opération</th>
+                                    <th class="text-end">Montant</th>
+                                    <th>Libellé</th>
+                                    <th>Référence</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-treso-mouvements-body">
+                                <tr><td colspan="6" class="text-center py-4 text-muted">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== ÉCRAN 14 : DÉCLARATIONS FISCALES ==================== -->
+        <div id="screen-declarations" class="screen-view">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0"><i class="fa-solid fa-file-contract text-primary me-2"></i>14. Déclarations Fiscales & Sociales</h4>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNewDeclaration"><i class="fa-solid fa-plus me-1"></i> Enregistrer Dépôt</button>
+            </div>
+
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Type Déclaration</th>
+                                    <th>Période</th>
+                                    <th>Date Dépôt</th>
+                                    <th class="text-end">Montant Versé</th>
+                                    <th>Statut</th>
+                                    <th>Notes</th>
+                                    <th class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-declarations-body">
+                                <tr><td colspan="7" class="text-center py-4 text-muted">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== ÉCRAN 15 : E-FATOURA / TTN ==================== -->
+        <div id="screen-efatoura" class="screen-view">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0"><i class="fa-solid fa-file-code text-primary me-2"></i>15. Facturation Électronique e-Fatoura (TTN TEIF)</h4>
+            </div>
+
+            <div class="alert alert-primary">
+                <i class="fa-solid fa-circle-check me-2"></i> Norme TEIF (Tunisian Electronic Invoicing Format) conforme aux spécifications de <strong>Tunisie Trade Net (TTN)</strong>.
+            </div>
+
+            <div class="card">
+                <div class="card-header">Factures Prêtes pour Exportation XML TTN</div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>N° Facture</th>
+                                    <th>Date</th>
+                                    <th>Client</th>
+                                    <th class="text-end">Total TTC</th>
+                                    <th>Statut TTN</th>
+                                    <th class="text-center">Action XML</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-efatoura-body">
+                                <tr><td colspan="6" class="text-center py-4 text-muted">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== ÉCRAN 16 : PARAMÈTRES & CONFIGURATION ==================== -->
+        <div id="screen-settings" class="screen-view">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0"><i class="fa-solid fa-sliders text-primary me-2"></i>16. Paramètres du Système & Taux</h4>
+                <button class="btn btn-success" onclick="saveSettings()"><i class="fa-solid fa-floppy-disk me-1"></i> Enregistrer les Modifications</button>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-light">Identité de l'Entreprise</div>
+                <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label small fw-bold">Raison Sociale</label>
-                            <input type="text" id="cfg_name" class="form-control form-control-sm" required>
+                            <input type="text" id="set_societe_nom" class="form-control">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small fw-bold">Matricule Fiscal</label>
-                            <input type="text" id="cfg_mat" class="form-control form-control-sm" required>
+                            <input type="text" id="set_societe_matricule" class="form-control">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label small fw-bold">Registre de Commerce</label>
-                            <input type="text" id="cfg_rc" class="form-control form-control-sm">
+                            <label class="form-label small fw-bold">Téléphone</label>
+                            <input type="text" id="set_societe_tel" class="form-control">
                         </div>
-
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">Adresse</label>
-                            <input type="text" id="cfg_adresse" class="form-control form-control-sm">
+                            <input type="text" id="set_societe_adresse" class="form-control">
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-bold">Telephone</label>
-                            <input type="text" id="cfg_tel" class="form-control form-control-sm">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Email de contact</label>
+                            <input type="email" id="set_societe_email" class="form-control">
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-bold">E-mail</label>
-                            <input type="email" id="cfg_email" class="form-control form-control-sm">
-                        </div>
+                    </div>
+                </div>
+            </div>
 
-                        <div class="col-12"><hr class="my-2"></div>
-                        <div class="col-12"><h6 class="fw-bold text-primary">Taux de Taxes & Cotisations (SAFE ERP)</h6></div>
-
+            <div class="card mb-4">
+                <div class="card-header bg-light">Taux Fiscaux & Sociaux Modifiables (Législation Tunisienne)</div>
+                <div class="card-body">
+                    <div class="row g-3">
                         <div class="col-md-3">
                             <label class="form-label small fw-bold">TVA Normale (%)</label>
-                            <input type="number" step="0.1" id="cfg_tva_normale" class="form-control form-control-sm">
+                            <input type="number" step="0.1" id="set_tva_taux_normal" class="form-control">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label small fw-bold">TVA Intermediaire (%)</label>
-                            <input type="number" step="0.1" id="cfg_tva_intermediaire" class="form-control form-control-sm">
+                            <label class="form-label small fw-bold">TVA Réduite 1 (%)</label>
+                            <input type="number" step="0.1" id="set_tva_taux_reduit1" class="form-control">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label small fw-bold">TVA Reduite (%)</label>
-                            <input type="number" step="0.1" id="cfg_tva_reduite" class="form-control form-control-sm">
+                            <label class="form-label small fw-bold">TVA Réduite 2 (%)</label>
+                            <input type="number" step="0.1" id="set_tva_taux_reduit2" class="form-control">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label small fw-bold">Timbre Fiscal (DT)</label>
-                            <input type="number" step="0.1" id="cfg_timbre" class="form-control form-control-sm">
+                            <label class="form-label small fw-bold">Timbre Fiscal (TND)</label>
+                            <input type="number" step="0.1" id="set_timbre_fiscal" class="form-control">
                         </div>
 
                         <div class="col-md-3">
                             <label class="form-label small fw-bold">CNSS Salariale (%)</label>
-                            <input type="number" step="0.01" id="cfg_cnss_sal" class="form-control form-control-sm">
+                            <input type="number" step="0.01" id="set_cnss_salarial" class="form-control">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label small fw-bold">CNSS Patronale (%)</label>
-                            <input type="number" step="0.01" id="cfg_cnss_pat" class="form-control form-control-sm">
+                            <input type="number" step="0.01" id="set_cnss_patronal" class="form-control">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label small fw-bold">CSS (%)</label>
-                            <input type="number" step="0.01" id="cfg_css" class="form-control form-control-sm">
+                            <label class="form-label small fw-bold">CSS Solidaire (%)</label>
+                            <input type="number" step="0.01" id="set_css_taux" class="form-control">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label small fw-bold">Taux IS (%)</label>
-                            <input type="number" id="cfg_is" class="form-control form-control-sm">
+                            <label class="form-label small fw-bold">TFP (%)</label>
+                            <input type="number" step="0.1" id="set_tfp_taux" class="form-control">
                         </div>
 
-                        <div class="col-12 text-end mt-3">
-                            <button type="submit" class="btn btn-primary fw-bold px-4">💾 Enregistrer Tous les Taux & Parametres</button>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">FOPROLOS (%)</label>
+                            <input type="number" step="0.1" id="set_foprolos_taux" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">IS Taux PME (%)</label>
+                            <input type="number" step="0.1" id="set_is_taux_pme" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">IS Taux Normal (%)</label>
+                            <input type="number" step="0.1" id="set_is_taux_normal" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">TCL Local (%)</label>
+                            <input type="number" step="0.05" id="set_tcl_taux" class="form-control">
                         </div>
                     </div>
-                </form>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-light">Barème IRPP 8 Tranches (Plafonds & Taux)</div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <label class="form-label small">Tranche 1 (0 - 5 000 TND) : 0%</label>
+                            <input type="number" id="set_irpp_tranche1_taux" class="form-control form-control-sm" value="0.0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Tranche 2 (5 000 - 10 000 TND) : 15%</label>
+                            <input type="number" id="set_irpp_tranche2_taux" class="form-control form-control-sm" value="15.0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Tranche 3 (10 000 - 20 000 TND) : 20%</label>
+                            <input type="number" id="set_irpp_tranche3_taux" class="form-control form-control-sm" value="20.0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Tranche 4 (20 000 - 30 000 TND) : 25%</label>
+                            <input type="number" id="set_irpp_tranche4_taux" class="form-control form-control-sm" value="25.0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Tranche 5 (30 000 - 40 000 TND) : 30%</label>
+                            <input type="number" id="set_irpp_tranche5_taux" class="form-control form-control-sm" value="30.0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Tranche 6 (40 000 - 50 000 TND) : 33%</label>
+                            <input type="number" id="set_irpp_tranche6_taux" class="form-control form-control-sm" value="33.0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Tranche 7 (50 000 - 100 000 TND) : 35%</label>
+                            <input type="number" id="set_irpp_tranche7_taux" class="form-control form-control-sm" value="35.0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Tranche 8 (> 100 000 TND) : 35%</label>
+                            <input type="number" id="set_irpp_tranche8_taux" class="form-control form-control-sm" value="35.0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-light">Sécurité & Licence Matérielle</div>
+                <div class="card-body">
+                    <p class="small text-muted mb-2">Signature matérielle de cette station de travail :</p>
+                    <div class="input-group mb-3">
+                        <span class="input-group-text"><i class="fa-solid fa-fingerprint"></i></span>
+                        <input type="text" id="license-hw-id" class="form-control font-monospace" readonly value="Chargement...">
+                        <span class="input-group-text bg-success text-white"><i class="fa-solid fa-lock me-1"></i> Licence Valide</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ==================== MODALS ==================== -->
+    
+    <!-- Modal Nouvelle Facture -->
+    <div class="modal fade" id="modalNewFacture" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Créer une Facture Client</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">Client</label>
+                            <select id="fac_client_select" class="form-select"></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Date Facture</label>
+                            <input type="date" id="fac_date" class="form-control">
+                        </div>
+                    </div>
+                    <label class="form-label small fw-bold">Ligne d'article</label>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-5">
+                            <select id="fac_art_select" class="form-select form-select-sm"></select>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="number" id="fac_qte" class="form-control form-control-sm" placeholder="Qté" value="1">
+                        </div>
+                        <div class="col-md-3">
+                            <input type="number" step="0.001" id="fac_prix" class="form-control form-control-sm" placeholder="Prix HT (TND)">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary w-100" onclick="addLigneFacture()">Ajouter</button>
+                        </div>
+                    </div>
+                    <table class="table table-sm">
+                        <thead><tr><th>Désignation</th><th>Qté</th><th>Prix HT</th><th>TVA</th><th>Total HT</th></tr></thead>
+                        <tbody id="fac_lignes_body"></tbody>
+                    </table>
+                    <div class="text-end fw-bold mt-2" id="fac_preview_total">Total TTC : 0.000 TND</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary" onclick="submitFacture()">Valider & Enregistrer</button>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Modal Nouvel Achat -->
+    <div class="modal fade" id="modalNewAchat" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Enregistrer un Achat Fournisseur</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small">Fournisseur</label>
+                        <select id="ach_fournisseur_select" class="form-select"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Date d'achat</label>
+                        <input type="date" id="ach_date" class="form-control">
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">Montant HT (TND)</label>
+                            <input type="number" step="0.001" id="ach_montant_ht" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Taux TVA (%)</label>
+                            <select id="ach_taux_tva" class="form-select">
+                                <option value="19">19 %</option>
+                                <option value="13">13 %</option>
+                                <option value="7">7 %</option>
+                                <option value="0">0 %</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary" onclick="submitAchat()">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nouveau Tiers -->
+    <div class="modal fade" id="modalNewTier" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nouveau Tiers</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small">Type</label>
+                        <select id="tier_type" class="form-select">
+                            <option value="client">Client</option>
+                            <option value="fournisseur">Fournisseur</option>
+                            <option value="les deux">Les deux (Mixte)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Raison Sociale / Nom</label>
+                        <input type="text" id="tier_nom" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Matricule Fiscal</label>
+                        <input type="text" id="tier_matricule" class="form-control" placeholder="1234567/A/M/000">
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">Ville</label>
+                            <input type="text" id="tier_ville" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Téléphone</label>
+                            <input type="text" id="tier_tel" class="form-control">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Email</label>
+                        <input type="email" id="tier_email" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary" onclick="submitTier()">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nouvel Article -->
+    <div class="modal fade" id="modalNewArticle" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nouvel Article / Prestation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small">Code Article</label>
+                        <input type="text" id="art_code" class="form-control" placeholder="Ex: ART-005">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Désignation</label>
+                        <input type="text" id="art_desig" class="form-control">
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">Prix Vente HT (TND)</label>
+                            <input type="number" step="0.001" id="art_prix_ht" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Taux TVA (%)</label>
+                            <select id="art_tva" class="form-select">
+                                <option value="19">19 %</option>
+                                <option value="13">13 %</option>
+                                <option value="7">7 %</option>
+                                <option value="0">0 %</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">Stock Initial</label>
+                            <input type="number" id="art_stock" class="form-control" value="0">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Seuil Min d'Alerte</label>
+                            <input type="number" id="art_stock_min" class="form-control" value="5">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary" onclick="submitArticle()">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Mouvement Stock -->
+    <div class="modal fade" id="modalMouvementStock" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Enregistrer Mouvement de Stock</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small">Article</label>
+                        <select id="mvt_art_select" class="form-select"></select>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">Type de mouvement</label>
+                            <select id="mvt_type" class="form-select">
+                                <option value="entrée">Entrée (+)</option>
+                                <option value="sortie">Sortie (-)</option>
+                                <option value="inventaire">Ajustement inventaire (=)</option>
+                                <option value="retour">Retour client (+)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Quantité</label>
+                            <input type="number" id="mvt_qte" class="form-control" value="1">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Référence / Pièce</label>
+                        <input type="text" id="mvt_ref" class="form-control" placeholder="BL-2024-001">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary" onclick="submitMouvementStock()">Valider</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nouveau Salarié -->
+    <div class="modal fade" id="modalNewSalarie" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nouveau Salarié</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">Nom</label>
+                            <input type="text" id="sal_nom" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Prénom</label>
+                            <input type="text" id="sal_prenom" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">N° CIN</label>
+                            <input type="text" id="sal_cin" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Poste</label>
+                            <input type="text" id="sal_poste" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">Département</label>
+                            <input type="text" id="sal_dep" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Salaire de Base Brut (TND)</label>
+                            <input type="number" step="0.001" id="sal_salaire" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary" onclick="submitSalarie()">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Calcul Paie -->
+    <div class="modal fade" id="modalCalculPaie" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Calculer un Bulletin de Paie</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small">Salarié</label>
+                        <select id="paie_sal_select" class="form-select"></select>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">Mois</label>
+                            <select id="paie_mois" class="form-select">
+                                <option value="01">Janvier</option><option value="02">Février</option>
+                                <option value="03">Mars</option><option value="04">Avril</option>
+                                <option value="05">Mai</option><option value="06">Juin</option>
+                                <option value="07">Juillet</option><option value="08">Août</option>
+                                <option value="09">Septembre</option><option value="10">Octobre</option>
+                                <option value="11">Novembre</option><option value="12">Décembre</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Année</label>
+                            <input type="number" id="paie_annee" class="form-control" value="2026">
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">Primes (TND)</label>
+                            <input type="number" step="0.001" id="paie_primes" class="form-control" value="0">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Indemnités non imposables</label>
+                            <input type="number" step="0.001" id="paie_indemnites" class="form-control" value="0">
+                        </div>
+                    </div>
+                    <div id="paie_result_preview" class="p-3 bg-light rounded" style="display:none;">
+                        <!-- Aperçu calculé -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                    <button type="button" class="btn btn-primary" onclick="submitCalculPaie()">Calculer & Générer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nouvelle Ecriture -->
+    <div class="modal fade" id="modalNewEcriture" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nouvelle Écriture Comptable</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">Journal</label>
+                            <select id="ecr_journal" class="form-select">
+                                <option value="VE">Ventes (VE)</option>
+                                <option value="AC">Achats (AC)</option>
+                                <option value="BQ">Banque (BQ)</option>
+                                <option value="CA">Caisse (CA)</option>
+                                <option value="OD">Opérations Diverses (OD)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Date</label>
+                            <input type="date" id="ecr_date" class="form-control">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Libellé</label>
+                        <input type="text" id="ecr_libelle" class="form-control">
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">Compte Débit</label>
+                            <select id="ecr_cpt_debit" class="form-select"></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Compte Crédit</label>
+                            <select id="ecr_cpt_credit" class="form-select"></select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Montant (TND)</label>
+                        <input type="number" step="0.001" id="ecr_montant" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary" onclick="submitEcriture()">Comptabiliser</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Mouvement Trésorerie -->
+    <div class="modal fade" id="modalMvtTresorerie" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Opération de Trésorerie</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small">Compte</label>
+                        <select id="treso_cpt_select" class="form-select"></select>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">Type Opération</label>
+                            <select id="treso_type" class="form-select">
+                                <option value="encaissement">Encaissement (+)</option>
+                                <option value="décaissement">Décaissement (-)</option>
+                                <option value="virement">Virement interne</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Montant (TND)</label>
+                            <input type="number" step="0.001" id="treso_montant" class="form-control">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Libellé</label>
+                        <input type="text" id="treso_libelle" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary" onclick="submitMvtTresorerie()">Valider</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nouvelle Déclaration -->
+    <div class="modal fade" id="modalNewDeclaration" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Enregistrer une Déclaration</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small">Type</label>
+                        <select id="dec_type" class="form-select">
+                            <option value="TVA">Déclaration Mensuelle TVA / Retenues</option>
+                            <option value="CNSS">Déclaration Trimestrielle CNSS</option>
+                            <option value="Acompte 1">1er Acompte Provisionnel (IS)</option>
+                            <option value="Acompte 2">2ème Acompte Provisionnel (IS)</option>
+                            <option value="Acompte 3">3ème Acompte Provisionnel (IS)</option>
+                            <option value="Bilan">Déclaration Annuelle de l'IS (Bilan)</option>
+                        </select>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">Période (Mois ou Trimestre)</label>
+                            <input type="text" id="dec_periode" class="form-control" placeholder="Ex: 2026-03 ou T1-2026">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Montant Versé (TND)</label>
+                            <input type="number" step="0.001" id="dec_montant" class="form-control">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Date de dépôt</label>
+                        <input type="date" id="dec_date" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary" onclick="submitDeclaration()">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal XML Preview -->
+    <div class="modal fade" id="modalXmlPreview" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa-solid fa-code me-2"></i>Aperçu TEIF XML (e-Fatoura TTN)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <pre id="xml-content-box" class="bg-dark text-light p-3 rounded" style="max-height: 450px; overflow: auto; font-size: 0.8rem;"></pre>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                    <a id="btn-download-xml" class="btn btn-success" download="facture_teif.xml"><i class="fa-solid fa-download me-1"></i> Télécharger XML</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- LOGIQUE CLIENT JAVASCRIPT AVEC APPELS API COMPLETS -->
     <script>
-        function showTab(tabId, ev) {
-            var panes = document.querySelectorAll('.tab-pane-custom');
-            for (var i = 0; i < panes.length; i++) {
-                panes[i].classList.add('d-none');
-            }
-            document.getElementById(tabId).classList.remove('d-none');
-            var links = document.querySelectorAll('#pmeTabs .nav-link');
-            for (var j = 0; j < links.length; j++) {
-                links[j].classList.remove('active');
-            }
-            if (ev && ev.target) {
-                ev.target.classList.add('active');
-            }
+        const API = 'http://localhost:8006/api';
+        let chartInstance = null;
+        let globalSettings = {};
+        let tiersList = [];
+        let articlesList = [];
+        let salariesList = [];
+        let factureLignesTemp = [];
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen-view').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('#sidebar .nav-link').forEach(el => el.classList.remove('active'));
+            
+            const target = document.getElementById(screenId);
+            if (target) target.classList.add('active');
+
+            // Set active nav link
+            const links = document.querySelectorAll('#sidebar .nav-link');
+            links.forEach(l => {
+                if (l.getAttribute('onclick') && l.getAttribute('onclick').includes(screenId)) {
+                    l.classList.add('active');
+                }
+            });
+
+            // Trigger specific data loads
+            if (screenId === 'screen-dashboard') loadDashboard();
+            if (screenId === 'screen-factures') loadFactures();
+            if (screenId === 'screen-achats') loadAchats();
+            if (screenId === 'screen-tiers') loadTiers();
+            if (screenId === 'screen-articles') loadArticles();
+            if (screenId === 'screen-stock') loadStock();
+            if (screenId === 'screen-salaries') loadSalaries();
+            if (screenId === 'screen-paie') loadPaie();
+            if (screenId === 'screen-comptabilite') loadComptabilite();
+            if (screenId === 'screen-tva') loadTVA();
+            if (screenId === 'screen-fiscalite') loadFiscalite();
+            if (screenId === 'screen-immobilisations') loadImmobilisations();
+            if (screenId === 'screen-tresorerie') loadTresorerie();
+            if (screenId === 'screen-declarations') loadDeclarations();
+            if (screenId === 'screen-efatoura') loadEfatoura();
+            if (screenId === 'screen-settings') loadSettings();
         }
 
-        function loadInvoices() {
-            fetch('/api/invoices')
-                .then(function(res) { return res.json(); })
-                .then(function(data) {
-                    var tbody = document.getElementById('invoices-tbody');
-                    var html = '';
-                    for (var i = 0; i < data.length; i++) {
-                        var inv = data[i];
-                        html += '<tr>' +
-                            '<td class="fw-bold text-primary">' + inv.numero + '</td>' +
-                            '<td>' + inv.client_nom + '</td>' +
-                            '<td><code>' + inv.client_mat + '</code></td>' +
-                            '<td>' + inv.date_facture + '</td>' +
-                            '<td class="text-end fw-bold">' + inv.total_ht.toFixed(3) + '</td>' +
-                            '<td class="text-end">' + inv.total_tva.toFixed(3) + '</td>' +
-                            '<td class="text-end">' + inv.timbre.toFixed(3) + '</td>' +
-                            '<td class="text-end fw-bold text-success">' + inv.total_ttc.toFixed(3) + ' DT</td>' +
-                            '<td class="text-center">' +
-                                '<a href="/api/efatoura/xml/' + inv.id + '" target="_blank" class="btn btn-outline-dark btn-sm">📄 Telecharger XML TEIF</a>' +
-                            '</td>' +
-                        '</tr>';
-                    }
-                    tbody.innerHTML = html;
+        // --- DASHBOARD ---
+        async function loadDashboard() {
+            try {
+                const res = await fetch(`${API}/dashboard`);
+                const d = await res.json();
+                document.getElementById('kpi-ca').innerText = d.ca_annuel.toFixed(3) + ' TND';
+                document.getElementById('kpi-charges').innerText = d.charges_annuelles.toFixed(3) + ' TND';
+                document.getElementById('kpi-resultat').innerText = d.resultat.toFixed(3) + ' TND';
+                document.getElementById('kpi-tresorerie').innerText = d.tresorerie.toFixed(3) + ' TND';
+                document.getElementById('kpi-clients').innerText = d.nb_clients;
+                document.getElementById('kpi-fournisseurs').innerText = d.nb_fournisseurs;
+                document.getElementById('kpi-articles').innerText = d.nb_articles;
+                document.getElementById('kpi-salaries').innerText = d.nb_salaries;
+                document.getElementById('kpi-stock-alertes').innerText = d.stock_alerte;
+                document.getElementById('kpi-impayees').innerText = d.factures_impayees.toFixed(3) + ' TND';
+
+                // Chart
+                const labels = d.ca_mensuel.map(x => x.mois);
+                const values = d.ca_mensuel.map(x => x.ca);
+                const ctx = document.getElementById('chartCA').getContext('2d');
+                if (chartInstance) chartInstance.destroy();
+                chartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: "CA Réalisé (TND)",
+                            data: values,
+                            backgroundColor: '#3b82f6',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: { responsive: true, plugins: { legend: { display: false } } }
                 });
+            } catch(e) { console.error(e); }
         }
 
-        function loadPayroll() {
-            fetch('/api/payroll')
-                .then(function(res) { return res.json(); })
-                .then(function(data) {
-                    var tbody = document.getElementById('payroll-tbody');
-                    var html = '';
-                    for (var i = 0; i < data.length; i++) {
-                        var emp = data[i];
-                        html += '<tr>' +
-                            '<td class="fw-bold">' + emp.matricule + '</td>' +
-                            '<td>' + emp.nom + '</td>' +
-                            '<td>' + emp.cin + '</td>' +
-                            '<td class="text-end fw-bold">' + emp.salaire_base.toFixed(3) + '</td>' +
-                            '<td class="text-end text-danger">' + emp.cnss_salarie.toFixed(3) + '</td>' +
-                            '<td class="text-end text-danger">' + emp.irpp.toFixed(3) + '</td>' +
-                            '<td class="text-end text-danger">' + emp.css.toFixed(3) + '</td>' +
-                            '<td class="text-end fw-bold text-success">' + emp.salaire_net.toFixed(3) + ' DT</td>' +
-                        '</tr>';
-                    }
-                    tbody.innerHTML = html;
-                });
+        // --- FACTURES ---
+        async function loadFactures() {
+            try {
+                const res = await fetch(`${API}/factures`);
+                const list = await res.json();
+                const tbody = document.getElementById('table-factures-body');
+                if (!list.length) {
+                    tbody.innerHTML = '<tr><td colspan="9" class="text-center py-3 text-muted">Aucune facture enregistrée.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = list.map(f => `
+                    <tr>
+                        <td class="fw-bold">${f.numero}</td>
+                        <td>${f.date_facture}</td>
+                        <td>${f.client_nom || 'Client divers'}</td>
+                        <td class="text-end">${f.montant_ht.toFixed(3)}</td>
+                        <td class="text-end">${f.montant_tva.toFixed(3)}</td>
+                        <td class="text-end">${f.timbre.toFixed(3)}</td>
+                        <td class="text-end fw-bold">${f.montant_ttc.toFixed(3)} TND</td>
+                        <td><span class="badge ${f.statut==='payée'?'bg-success':f.statut==='validée'?'bg-primary':'bg-warning text-dark'}">${f.statut}</span></td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-info" onclick="viewXml('${f.id}')" title="XML TTN"><i class="fa-solid fa-code"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch(e) { console.error(e); }
         }
 
-        function loadSettings() {
-            fetch('/api/settings')
-                .then(function(res) { return res.json(); })
-                .then(function(s) {
-                    document.getElementById('cfg_name').value = s.name || '';
-                    document.getElementById('cfg_mat').value = s.matricule_fiscal || '';
-                    document.getElementById('cfg_rc').value = s.registre_commerce || '';
-                    document.getElementById('cfg_adresse').value = s.adresse || '';
-                    document.getElementById('cfg_tel').value = s.telephone || '';
-                    document.getElementById('cfg_email').value = s.email || '';
-                    document.getElementById('cfg_tva_normale').value = s.tva_normale;
-                    document.getElementById('cfg_tva_intermediaire').value = s.tva_intermediaire;
-                    document.getElementById('cfg_tva_reduite').value = s.tva_reduite;
-                    document.getElementById('cfg_timbre').value = s.timbre_fiscal;
-                    document.getElementById('cfg_cnss_sal').value = s.cnss_salarie;
-                    document.getElementById('cfg_cnss_pat').value = s.cnss_patronale;
-                    document.getElementById('cfg_css').value = s.css;
-                    document.getElementById('cfg_is').value = s.taux_is;
-                });
+        function addLigneFacture() {
+            const artId = document.getElementById('fac_art_select').value;
+            const qte = parseFloat(document.getElementById('fac_qte').value) || 1;
+            const prix = parseFloat(document.getElementById('fac_prix').value) || 0;
+            const art = articlesList.find(a => a.id === artId);
+            const desig = art ? art.designation : 'Article';
+            const tva = art ? art.taux_tva : 19.0;
+            const total_ht = qte * prix;
+            const total_tva = total_ht * (tva / 100);
+            const total_ttc = total_ht + total_tva;
+
+            factureLignesTemp.push({
+                article_id: artId,
+                designation: desig,
+                quantite: qte,
+                prix_ht: prix,
+                taux_tva: tva,
+                remise: 0,
+                total_ht: total_ht,
+                total_tva: total_tva,
+                total_ttc: total_ttc
+            });
+            renderFactureLignes();
         }
 
-        function saveSettings(e) {
-            e.preventDefault();
-            var payload = {
-                name: document.getElementById('cfg_name').value,
-                matricule_fiscal: document.getElementById('cfg_mat').value,
-                registre_commerce: document.getElementById('cfg_rc').value,
-                adresse: document.getElementById('cfg_adresse').value,
-                telephone: document.getElementById('cfg_tel').value,
-                email: document.getElementById('cfg_email').value,
-                regime_tva: 'assujetti',
-                regime_fiscal: 'reel',
-                taux_is: parseInt(document.getElementById('cfg_is').value) || 15,
-                tva_normale: parseFloat(document.getElementById('cfg_tva_normale').value) || 19.0,
-                tva_intermediaire: parseFloat(document.getElementById('cfg_tva_intermediaire').value) || 13.0,
-                tva_reduite: parseFloat(document.getElementById('cfg_tva_reduite').value) || 7.0,
-                timbre_fiscal: parseFloat(document.getElementById('cfg_timbre').value) || 1.0,
-                cnss_salarie: parseFloat(document.getElementById('cfg_cnss_sal').value) || 9.68,
-                cnss_patronale: parseFloat(document.getElementById('cfg_cnss_pat').value) || 17.07,
-                css: parseFloat(document.getElementById('cfg_css').value) || 0.5,
-                tfp: 1.0,
-                foprolos: 1.0,
-                abattement_famille: 300.0,
-                abattement_enfant: 100.0
-            };
-            fetch('/api/settings', {
+        function renderFactureLignes() {
+            const tbody = document.getElementById('fac_lignes_body');
+            tbody.innerHTML = factureLignesTemp.map((l, i) => `
+                <tr>
+                    <td>${l.designation}</td>
+                    <td>${l.quantite}</td>
+                    <td>${l.prix_ht.toFixed(3)}</td>
+                    <td>${l.taux_tva}%</td>
+                    <td>${l.total_ht.toFixed(3)} TND</td>
+                </tr>
+            `).join('');
+            const sumHT = factureLignesTemp.reduce((a,b)=>a+b.total_ht, 0);
+            const sumTVA = factureLignesTemp.reduce((a,b)=>a+b.total_tva, 0);
+            const timbre = globalSettings.timbre_fiscal || 1.0;
+            const totalTTC = sumHT + sumTVA + timbre;
+            document.getElementById('fac_preview_total').innerText = `Total HT: ${sumHT.toFixed(3)} | TVA: ${sumTVA.toFixed(3)} | Timbre: ${timbre.toFixed(3)} | TTC: ${totalTTC.toFixed(3)} TND`;
+        }
+
+        async function submitFacture() {
+            const clientSelect = document.getElementById('fac_client_select');
+            const clientId = clientSelect.value;
+            const clientNom = clientSelect.options[clientSelect.selectedIndex]?.text || '';
+            const dateFac = document.getElementById('fac_date').value || new Date().toISOString().split('T')[0];
+
+            await fetch(`${API}/factures`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
-            .then(function(res) { return res.json(); })
-            .then(function(out) {
-                alert(out.message || 'Parametres sauvegardes avec succes !');
+                body: JSON.stringify({
+                    client_id: clientId,
+                    client_nom: clientNom,
+                    date_facture: dateFac,
+                    statut: 'validée',
+                    lignes: factureLignesTemp
+                })
             });
+            factureLignesTemp = [];
+            bootstrap.Modal.getInstance(document.getElementById('modalNewFacture')).hide();
+            loadFactures();
         }
 
-        window.onload = function() {
-            loadInvoices();
-            loadPayroll();
+        // --- ACHATS ---
+        async function loadAchats() {
+            try {
+                const res = await fetch(`${API}/achats`);
+                const list = await res.json();
+                const tbody = document.getElementById('table-achats-body');
+                if (!list.length) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-3 text-muted">Aucun achat enregistré.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = list.map(a => `
+                    <tr>
+                        <td class="fw-bold">${a.numero}</td>
+                        <td>${a.date_achat}</td>
+                        <td>${a.fournisseur_nom || 'Fournisseur divers'}</td>
+                        <td class="text-end">${a.montant_ht.toFixed(3)}</td>
+                        <td class="text-end">${a.montant_tva.toFixed(3)}</td>
+                        <td class="text-end fw-bold">${a.montant_ttc.toFixed(3)} TND</td>
+                        <td><span class="badge bg-secondary">${a.statut}</span></td>
+                        <td class="text-center"><span class="text-muted"><i class="fa-solid fa-check text-success"></i></span></td>
+                    </tr>
+                `).join('');
+            } catch(e) { console.error(e); }
+        }
+
+        async function submitAchat() {
+            const fSelect = document.getElementById('ach_fournisseur_select');
+            const fourNom = fSelect.options[fSelect.selectedIndex]?.text || '';
+            const ht = parseFloat(document.getElementById('ach_montant_ht').value) || 0;
+            const tvaTaux = parseFloat(document.getElementById('ach_taux_tva').value) || 19.0;
+            const dateAch = document.getElementById('ach_date').value || new Date().toISOString().split('T')[0];
+            const tvaVal = ht * (tvaTaux / 100);
+
+            await fetch(`${API}/achats`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fournisseur_id: fSelect.value,
+                    fournisseur_nom: fourNom,
+                    date_achat: dateAch,
+                    statut: 'validé',
+                    lignes: [{ designation: 'Achat / Facture Fournisseur', total_ht: ht, total_tva: tvaVal, total_ttc: ht + tvaVal }]
+                })
+            });
+            bootstrap.Modal.getInstance(document.getElementById('modalNewAchat')).hide();
+            loadAchats();
+        }
+
+        // --- TIERS ---
+        async function loadTiers() {
+            try {
+                const res = await fetch(`${API}/tiers`);
+                tiersList = await res.json();
+                renderTiersTable(tiersList);
+                populateTiersSelects();
+            } catch(e) { console.error(e); }
+        }
+
+        function renderTiersTable(list) {
+            const tbody = document.getElementById('table-tiers-body');
+            tbody.innerHTML = list.map(t => `
+                <tr>
+                    <td><span class="badge ${t.type==='client'?'bg-primary':t.type==='fournisseur'?'bg-secondary':'bg-info text-dark'}">${t.type}</span></td>
+                    <td class="fw-bold">${t.raison_sociale}</td>
+                    <td><code>${t.matricule_fiscal || '-'}</code></td>
+                    <td>${t.ville || '-'}</td>
+                    <td>${t.tel || '-'}</td>
+                    <td>${t.email || '-'}</td>
+                    <td class="text-end fw-bold ${(t.solde||0)>=0?'text-success':'text-danger'}">${(t.solde||0).toFixed(3)} TND</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteTier('${t.id}')"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterTiers(type) {
+            if (!type) renderTiersTable(tiersList);
+            else renderTiersTable(tiersList.filter(t => t.type === type || t.type === 'les deux'));
+        }
+
+        function searchTiers(q) {
+            renderTiersTable(tiersList.filter(t => t.raison_sociale.toLowerCase().includes(q.toLowerCase())));
+        }
+
+        async function submitTier() {
+            await fetch(`${API}/tiers`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: document.getElementById('tier_type').value,
+                    raison_sociale: document.getElementById('tier_nom').value,
+                    matricule_fiscal: document.getElementById('tier_matricule').value,
+                    ville: document.getElementById('tier_ville').value,
+                    tel: document.getElementById('tier_tel').value,
+                    email: document.getElementById('tier_email').value
+                })
+            });
+            bootstrap.Modal.getInstance(document.getElementById('modalNewTier')).hide();
+            loadTiers();
+        }
+
+        async function deleteTier(id) {
+            if (confirm("Supprimer ce tiers ?")) {
+                await fetch(`${API}/tiers/${id}`, { method: 'DELETE' });
+                loadTiers();
+            }
+        }
+
+        function populateTiersSelects() {
+            const facSelect = document.getElementById('fac_client_select');
+            const achSelect = document.getElementById('ach_fournisseur_select');
+            if (facSelect) {
+                facSelect.innerHTML = tiersList.filter(t => t.type==='client'||t.type==='les deux')
+                    .map(t => `<option value="${t.id}">${t.raison_sociale}</option>`).join('');
+            }
+            if (achSelect) {
+                achSelect.innerHTML = tiersList.filter(t => t.type==='fournisseur'||t.type==='les deux')
+                    .map(t => `<option value="${t.id}">${t.raison_sociale}</option>`).join('');
+            }
+        }
+
+        // --- ARTICLES ---
+        async function loadArticles() {
+            try {
+                const res = await fetch(`${API}/articles`);
+                articlesList = await res.json();
+                const tbody = document.getElementById('table-articles-body');
+                tbody.innerHTML = articlesList.map(a => `
+                    <tr>
+                        <td><code>${a.code}</code></td>
+                        <td class="fw-bold">${a.designation}</td>
+                        <td>${a.famille || '-'}</td>
+                        <td>${a.unite}</td>
+                        <td class="text-end">${a.prix_vente_ht.toFixed(3)}</td>
+                        <td class="text-end">${a.taux_tva}%</td>
+                        <td class="text-end fw-bold ${a.stock_actuel<=a.stock_min?'text-danger':'text-success'}">${a.stock_actuel}</td>
+                        <td class="text-end text-muted">${a.stock_min}</td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteArticle('${a.id}')"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+                populateArticleSelects();
+            } catch(e) { console.error(e); }
+        }
+
+        function populateArticleSelects() {
+            const sel1 = document.getElementById('fac_art_select');
+            const sel2 = document.getElementById('mvt_art_select');
+            if (sel1) {
+                sel1.innerHTML = articlesList.map(a => `<option value="${a.id}">${a.code} - ${a.designation} (${a.prix_vente_ht.toFixed(3)} TND)</option>`).join('');
+                if (articlesList[0]) document.getElementById('fac_prix').value = articlesList[0].prix_vente_ht;
+                sel1.onchange = () => {
+                    const found = articlesList.find(x => x.id === sel1.value);
+                    if (found) document.getElementById('fac_prix').value = found.prix_vente_ht;
+                };
+            }
+            if (sel2) {
+                sel2.innerHTML = articlesList.map(a => `<option value="${a.id}">${a.code} - ${a.designation} (Stock: ${a.stock_actuel})</option>`).join('');
+            }
+        }
+
+        async function submitArticle() {
+            await fetch(`${API}/articles`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    code: document.getElementById('art_code').value,
+                    designation: document.getElementById('art_desig').value,
+                    prix_vente_ht: parseFloat(document.getElementById('art_prix_ht').value) || 0,
+                    taux_tva: parseFloat(document.getElementById('art_tva').value) || 19,
+                    stock_actuel: parseFloat(document.getElementById('art_stock').value) || 0,
+                    stock_min: parseFloat(document.getElementById('art_stock_min').value) || 5
+                })
+            });
+            bootstrap.Modal.getInstance(document.getElementById('modalNewArticle')).hide();
+            loadArticles();
+        }
+
+        async function deleteArticle(id) {
+            if (confirm("Désactiver cet article ?")) {
+                await fetch(`${API}/articles/${id}`, { method: 'DELETE' });
+                loadArticles();
+            }
+        }
+
+        // --- STOCK ---
+        async function loadStock() {
+            try {
+                const resAlt = await fetch(`${API}/stock/alertes`);
+                const alertes = await resAlt.json();
+                const tbodyAlt = document.getElementById('table-stock-alertes-body');
+                if (!alertes.length) {
+                    tbodyAlt.innerHTML = '<tr><td colspan="5" class="text-center py-2 text-success"><i class="fa-solid fa-check-circle me-1"></i> Aucun article en rupture ou sous seuil min.</td></tr>';
+                } else {
+                    tbodyAlt.innerHTML = alertes.map(a => `
+                        <tr>
+                            <td><code>${a.code}</code></td>
+                            <td class="fw-bold">${a.designation}</td>
+                            <td class="text-end text-danger fw-bold">${a.stock_actuel}</td>
+                            <td class="text-end text-muted">${a.stock_min}</td>
+                            <td><span class="badge bg-danger">Alerte Réappro</span></td>
+                        </tr>
+                    `).join('');
+                }
+
+                const resMvt = await fetch(`${API}/stock/mouvements`);
+                const mvts = await resMvt.json();
+                const tbodyMvt = document.getElementById('table-stock-mouvements-body');
+                tbodyMvt.innerHTML = mvts.map(m => `
+                    <tr>
+                        <td>${m.date_mouvement.split('T')[0]}</td>
+                        <td><strong>${m.code || ''}</strong> - ${m.designation || ''}</td>
+                        <td><span class="badge ${m.type_mouvement==='entrée'?'bg-success':'bg-warning text-dark'}">${m.type_mouvement}</span></td>
+                        <td class="text-end fw-bold">${m.quantite}</td>
+                        <td>${m.reference || '-'}</td>
+                        <td>${m.notes || '-'}</td>
+                    </tr>
+                `).join('');
+            } catch(e) { console.error(e); }
+        }
+
+        async function submitMouvementStock() {
+            await fetch(`${API}/stock/mouvement`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    article_id: document.getElementById('mvt_art_select').value,
+                    type_mouvement: document.getElementById('mvt_type').value,
+                    quantite: parseFloat(document.getElementById('mvt_qte').value) || 1,
+                    reference: document.getElementById('mvt_ref').value
+                })
+            });
+            bootstrap.Modal.getInstance(document.getElementById('modalMouvementStock')).hide();
+            loadStock();
+        }
+
+        // --- SALARIÉS ---
+        async function loadSalaries() {
+            try {
+                const res = await fetch(`${API}/salaries`);
+                salariesList = await res.json();
+                const tbody = document.getElementById('table-salaries-body');
+                tbody.innerHTML = salariesList.map(s => `
+                    <tr>
+                        <td><code>${s.matricule}</code></td>
+                        <td class="fw-bold">${s.nom} ${s.prenom}</td>
+                        <td>${s.cin || '-'}</td>
+                        <td>${s.poste || '-'}</td>
+                        <td>${s.departement || '-'}</td>
+                        <td><span class="badge bg-info text-dark">${s.type_contrat}</span></td>
+                        <td class="text-end fw-bold">${s.salaire_base.toFixed(3)} TND</td>
+                        <td>${s.date_embauche || '-'}</td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-primary" onclick="preparerPaiePour('${s.id}')"><i class="fa-solid fa-calculator"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+                populateSalariesSelect();
+            } catch(e) { console.error(e); }
+        }
+
+        function populateSalariesSelect() {
+            const sel = document.getElementById('paie_sal_select');
+            if (sel) {
+                sel.innerHTML = salariesList.map(s => `<option value="${s.id}">${s.matricule} - ${s.nom} ${s.prenom} (${s.salaire_base.toFixed(3)} TND)</option>`).join('');
+            }
+        }
+
+        async function submitSalarie() {
+            await fetch(`${API}/salaries`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nom: document.getElementById('sal_nom').value,
+                    prenom: document.getElementById('sal_prenom').value,
+                    cin: document.getElementById('sal_cin').value,
+                    poste: document.getElementById('sal_poste').value,
+                    departement: document.getElementById('sal_dep').value,
+                    salaire_base: parseFloat(document.getElementById('sal_salaire').value) || 0
+                })
+            });
+            bootstrap.Modal.getInstance(document.getElementById('modalNewSalarie')).hide();
+            loadSalaries();
+        }
+
+        // --- PAIE ---
+        async function loadPaie() {
+            try {
+                const res = await fetch(`${API}/paie`);
+                const list = await res.json();
+                const tbody = document.getElementById('table-paie-body');
+                tbody.innerHTML = list.map(b => `
+                    <tr>
+                        <td><strong>${b.mois}/${b.annee}</strong></td>
+                        <td><code>${b.matricule}</code></td>
+                        <td>${b.nom} ${b.prenom}</td>
+                        <td class="text-end">${b.brut_imposable.toFixed(3)}</td>
+                        <td class="text-end text-danger">-${b.cnss_salarial.toFixed(3)}</td>
+                        <td class="text-end text-danger">-${b.css.toFixed(3)}</td>
+                        <td class="text-end text-danger">-${b.irpp.toFixed(3)}</td>
+                        <td class="text-end fw-bold text-success">${b.net_a_payer.toFixed(3)} TND</td>
+                        <td class="text-end text-muted">${(b.cnss_patronal + b.tfp + b.foprolos).toFixed(3)}</td>
+                    </tr>
+                `).join('');
+            } catch(e) { console.error(e); }
+        }
+
+        function preparerPaiePour(salId) {
+            document.getElementById('paie_sal_select').value = salId;
+            showScreen('screen-paie');
+            const m = new bootstrap.Modal(document.getElementById('modalCalculPaie'));
+            m.show();
+        }
+
+        async function submitCalculPaie() {
+            const salId = document.getElementById('paie_sal_select').value;
+            const res = await fetch(`${API}/paie/calculer`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    salarie_id: salId,
+                    mois: document.getElementById('paie_mois').value,
+                    annee: parseInt(document.getElementById('paie_annee').value),
+                    primes: parseFloat(document.getElementById('paie_primes').value) || 0,
+                    indemnites: parseFloat(document.getElementById('paie_indemnites').value) || 0
+                })
+            });
+            const d = await res.json();
+            bootstrap.Modal.getInstance(document.getElementById('modalCalculPaie')).hide();
+            loadPaie();
+        }
+
+        // --- COMPTABILITÉ ---
+        async function loadComptabilite() {
+            try {
+                const [rCpt, rEcr] = await Promise.all([fetch(`${API}/comptes`), fetch(`${API}/ecritures`)]);
+                const comptes = await rCpt.json();
+                const ecritures = await rEcr.json();
+
+                document.getElementById('table-comptes-body').innerHTML = comptes.map(c => `
+                    <tr>
+                        <td><code>${c.numero}</code></td>
+                        <td>${c.intitule}</td>
+                        <td class="text-end fw-bold ${(c.solde||0)>=0?'text-primary':'text-danger'}">${(c.solde||0).toFixed(3)}</td>
+                    </tr>
+                `).join('');
+
+                document.getElementById('table-ecritures-body').innerHTML = ecritures.map(e => `
+                    <tr>
+                        <td>${e.date_ecriture}</td>
+                        <td><span class="badge bg-secondary">${e.journal}</span></td>
+                        <td>${e.libelle}</td>
+                        <td><code>${e.compte_debit}</code></td>
+                        <td><code>${e.compte_credit}</code></td>
+                        <td class="text-end fw-bold">${e.montant.toFixed(3)}</td>
+                    </tr>
+                `).join('');
+
+                const selDeb = document.getElementById('ecr_cpt_debit');
+                const selCrd = document.getElementById('ecr_cpt_credit');
+                if (selDeb && selCrd) {
+                    const opts = comptes.map(c => `<option value="${c.numero}">${c.numero} - ${c.intitule}</option>`).join('');
+                    selDeb.innerHTML = opts;
+                    selCrd.innerHTML = opts;
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        async function submitEcriture() {
+            await fetch(`${API}/ecritures`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    journal: document.getElementById('ecr_journal').value,
+                    date_ecriture: document.getElementById('ecr_date').value || new Date().toISOString().split('T')[0],
+                    libelle: document.getElementById('ecr_libelle').value,
+                    compte_debit: document.getElementById('ecr_cpt_debit').value,
+                    compte_credit: document.getElementById('ecr_cpt_credit').value,
+                    montant: parseFloat(document.getElementById('ecr_montant').value) || 0
+                })
+            });
+            bootstrap.Modal.getInstance(document.getElementById('modalNewEcriture')).hide();
+            loadComptabilite();
+        }
+
+        // --- TVA ---
+        async function loadTVA() {
+            try {
+                const res = await fetch(`${API}/tva`);
+                const d = await res.json();
+                document.getElementById('tva-col-val').innerText = d.tva_collectee.toFixed(3) + ' TND';
+                document.getElementById('tva-ded-val').innerText = d.tva_deductible.toFixed(3) + ' TND';
+                const net = d.tva_nette;
+                const netEl = document.getElementById('tva-net-val');
+                const cardEl = document.getElementById('tva-card-solde');
+                const stText = document.getElementById('tva-status-text');
+
+                if (net >= 0) {
+                    netEl.innerText = net.toFixed(3) + ' TND';
+                    netEl.className = 'mt-1 text-danger';
+                    cardEl.className = 'card p-3 border-danger';
+                    stText.innerText = 'TVA à Décaisser au Trésor';
+                } else {
+                    netEl.innerText = Math.abs(net).toFixed(3) + ' TND';
+                    netEl.className = 'mt-1 text-success';
+                    cardEl.className = 'card p-3 border-success';
+                    stText.innerText = 'Crédit de TVA reportable';
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        // --- FISCALITÉ ---
+        async function loadFiscalite() {
+            try {
+                const res = await fetch(`${API}/fiscalite`);
+                const d = await res.json();
+                document.getElementById('fisc-benefice').innerText = d.benefice.toFixed(3) + ' TND';
+                document.getElementById('fisc-is').innerText = d.is_du.toFixed(3) + ' TND';
+                document.getElementById('fisc-taux-is').innerText = `Taux appliqué : ${d.taux_is}%`;
+                document.getElementById('fisc-tcl').innerText = d.tcl.toFixed(3) + ' TND';
+                document.getElementById('fisc-timbre').innerText = d.timbres.toFixed(3) + ' TND';
+                document.getElementById('fisc-summary-is').innerText = d.is_du.toFixed(3) + ' TND';
+                document.getElementById('fisc-summary-acomptes').innerText = `3 x ${(d.is_du * 0.3).toFixed(3)} TND`;
+                document.getElementById('fisc-summary-total').innerText = d.total_fiscal.toFixed(3) + ' TND';
+            } catch(e) { console.error(e); }
+        }
+
+        // --- IMMOBILISATIONS ---
+        async function loadImmobilisations() {
+            try {
+                const res = await fetch(`${API}/immobilisations`);
+                const list = await res.json();
+                const tbody = document.getElementById('table-immo-body');
+                tbody.innerHTML = list.map(m => `
+                    <tr>
+                        <td><code>${m.code}</code></td>
+                        <td class="fw-bold">${m.designation}</td>
+                        <td>${m.famille || '-'}</td>
+                        <td>${m.date_acquisition}</td>
+                        <td class="text-end">${m.valeur_acquisition.toFixed(3)}</td>
+                        <td class="text-end">${m.taux_amortissement}%</td>
+                        <td class="text-end">${m.amortissement_annuel.toFixed(3)}</td>
+                        <td class="text-end text-danger">${m.amortissement_cumule.toFixed(3)}</td>
+                        <td class="text-end fw-bold text-primary">${m.valeur_nette_comptable.toFixed(3)} TND</td>
+                    </tr>
+                `).join('');
+            } catch(e) { console.error(e); }
+        }
+
+        // --- TRÉSORERIE ---
+        async function loadTresorerie() {
+            try {
+                const [rCpt, rMvt] = await Promise.all([fetch(`${API}/tresorerie`), fetch(`${API}/tresorerie/mouvements`)]);
+                const comptes = await rCpt.json();
+                const mvts = await rMvt.json();
+
+                const container = document.getElementById('tresorerie-cards-container');
+                container.innerHTML = comptes.map(c => `
+                    <div class="col-md-4">
+                        <div class="card p-3 border-${c.type==='caisse'?'warning':'primary'}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge ${c.type==='caisse'?'bg-warning text-dark':'bg-primary'}">${c.type.toUpperCase()}</span>
+                                <small class="text-muted"><code>${c.code}</code></small>
+                            </div>
+                            <h4 class="mt-2 mb-1">${c.intitule}</h4>
+                            <h3 class="fw-bold text-${c.solde_actuel>=0?'success':'danger'}">${c.solde_actuel.toFixed(3)} TND</h3>
+                            <div class="small text-muted">${c.banque ? 'Banque : ' + c.banque : 'Caisse locale'}</div>
+                        </div>
+                    </div>
+                `).join('');
+
+                document.getElementById('table-treso-mouvements-body').innerHTML = mvts.map(m => `
+                    <tr>
+                        <td>${m.date_mouvement}</td>
+                        <td><strong>${m.intitule}</strong></td>
+                        <td><span class="badge ${m.type_operation==='encaissement'?'bg-success':'bg-danger'}">${m.type_operation}</span></td>
+                        <td class="text-end fw-bold">${m.montant.toFixed(3)} TND</td>
+                        <td>${m.libelle || '-'}</td>
+                        <td>${m.reference || '-'}</td>
+                    </tr>
+                `).join('');
+
+                const sel = document.getElementById('treso_cpt_select');
+                if (sel) {
+                    sel.innerHTML = comptes.map(c => `<option value="${c.id}">${c.intitule} (Solde: ${c.solde_actuel.toFixed(3)} TND)</option>`).join('');
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        async function submitMvtTresorerie() {
+            await fetch(`${API}/tresorerie/mouvement`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    compte_id: document.getElementById('treso_cpt_select').value,
+                    type_operation: document.getElementById('treso_type').value,
+                    montant: parseFloat(document.getElementById('treso_montant').value) || 0,
+                    libelle: document.getElementById('treso_libelle').value
+                })
+            });
+            bootstrap.Modal.getInstance(document.getElementById('modalMvtTresorerie')).hide();
+            loadTresorerie();
+        }
+
+        // --- DÉCLARATIONS ---
+        async function loadDeclarations() {
+            try {
+                const res = await fetch(`${API}/declarations`);
+                const list = await res.json();
+                const tbody = document.getElementById('table-declarations-body');
+                if (!list.length) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-3 text-muted">Aucune déclaration enregistrée.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = list.map(d => `
+                    <tr>
+                        <td><strong>${d.type_declaration}</strong></td>
+                        <td>${d.periode}</td>
+                        <td>${d.date_depot || '-'}</td>
+                        <td class="text-end fw-bold">${d.montant.toFixed(3)} TND</td>
+                        <td><span class="badge bg-success">${d.statut}</span></td>
+                        <td>${d.notes || '-'}</td>
+                        <td class="text-center"><span class="badge bg-light text-dark"><i class="fa-solid fa-file-pdf"></i> Quittance</span></td>
+                    </tr>
+                `).join('');
+            } catch(e) { console.error(e); }
+        }
+
+        async function submitDeclaration() {
+            await fetch(`${API}/declarations`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type_declaration: document.getElementById('dec_type').value,
+                    periode: document.getElementById('dec_periode').value,
+                    montant: parseFloat(document.getElementById('dec_montant').value) || 0,
+                    date_depot: document.getElementById('dec_date').value || new Date().toISOString().split('T')[0],
+                    statut: 'déposée'
+                })
+            });
+            bootstrap.Modal.getInstance(document.getElementById('modalNewDeclaration')).hide();
+            loadDeclarations();
+        }
+
+        // --- E-FATOURA / TTN ---
+        async function loadEfatoura() {
+            try {
+                const res = await fetch(`${API}/factures`);
+                const list = await res.json();
+                const tbody = document.getElementById('table-efatoura-body');
+                tbody.innerHTML = list.map(f => `
+                    <tr>
+                        <td><code>${f.numero}</code></td>
+                        <td>${f.date_facture}</td>
+                        <td>${f.client_nom}</td>
+                        <td class="text-end fw-bold">${f.montant_ttc.toFixed(3)} TND</td>
+                        <td><span class="badge bg-success"><i class="fa-solid fa-check me-1"></i> XML Conforme TTN</span></td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-primary" onclick="viewXml('${f.id}')"><i class="fa-solid fa-file-code me-1"></i> Voir XML TEIF</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch(e) { console.error(e); }
+        }
+
+        async function viewXml(factureId) {
+            try {
+                const res = await fetch(`${API}/efatoura/xml/${factureId}`);
+                const xmlText = await res.text();
+                document.getElementById('xml-content-box').innerText = xmlText;
+                const blob = new Blob([xmlText], { type: 'application/xml' });
+                const url = URL.createObjectURL(blob);
+                const btnDown = document.getElementById('btn-download-xml');
+                btnDown.href = url;
+                btnDown.download = `facture_ttn_${factureId}.xml`;
+                const m = new bootstrap.Modal(document.getElementById('modalXmlPreview'));
+                m.show();
+            } catch(e) { alert("Erreur chargement XML"); }
+        }
+
+        // --- SETTINGS ---
+        async function loadSettings() {
+            try {
+                const res = await fetch(`${API}/settings`);
+                globalSettings = await res.json();
+
+                for (let k in globalSettings) {
+                    const el = document.getElementById(`set_${k}`);
+                    if (el) el.value = globalSettings[k];
+                }
+
+                document.getElementById('nav-company-name').innerText = globalSettings.societe_nom || 'Ma Société SARL';
+
+                // Licence
+                const rLic = await fetch(`${API}/licence`);
+                const lic = await rLic.json();
+                document.getElementById('license-hw-id').value = lic.hardware_id + ' [HMAC: ' + lic.token + ']';
+            } catch(e) { console.error(e); }
+        }
+
+        async function saveSettings() {
+            const data = {};
+            const fields = [
+                "societe_nom","societe_matricule","societe_adresse","societe_tel","societe_email",
+                "tva_taux_normal","tva_taux_reduit1","tva_taux_reduit2",
+                "cnss_salarial","cnss_patronal","css_taux","tfp_taux","foprolos_taux",
+                "is_taux_pme","is_taux_normal","timbre_fiscal","tcl_taux",
+                "irpp_tranche1_taux","irpp_tranche2_taux","irpp_tranche3_taux","irpp_tranche4_taux",
+                "irpp_tranche5_taux","irpp_tranche6_taux","irpp_tranche7_taux","irpp_tranche8_taux"
+            ];
+            fields.forEach(f => {
+                const el = document.getElementById(`set_${f}`);
+                if (el) data[f] = isNaN(el.value) || el.value==="" ? el.value : parseFloat(el.value);
+            });
+
+            const res = await fetch(`${API}/settings`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                alert("Paramètres enregistrés avec succès !");
+                loadSettings();
+            }
+        }
+
+        // --- INIT ---
+        window.onload = () => {
             loadSettings();
+            loadDashboard();
+            loadTiers();
+            loadArticles();
+            loadSalaries();
         };
     </script>
 </body>
