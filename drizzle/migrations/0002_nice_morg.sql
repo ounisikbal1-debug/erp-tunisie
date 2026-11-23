@@ -1,1 +1,0 @@
-ALTER TABLE "tax_declarations" ADD COLUMN "detail" jsonb;
