@@ -102,15 +102,15 @@ def init_db():
         irpp_tranche4_max REAL DEFAULT 30000,
         irpp_tranche5_max REAL DEFAULT 40000,
         irpp_tranche6_max REAL DEFAULT 50000,
-        irpp_tranche7_max REAL DEFAULT 100000,
+        irpp_tranche7_max REAL DEFAULT 70000,
         irpp_tranche1_taux REAL DEFAULT 0.0,
         irpp_tranche2_taux REAL DEFAULT 15.0,
-        irpp_tranche3_taux REAL DEFAULT 20.0,
-        irpp_tranche4_taux REAL DEFAULT 25.0,
-        irpp_tranche5_taux REAL DEFAULT 30.0,
-        irpp_tranche6_taux REAL DEFAULT 33.0,
-        irpp_tranche7_taux REAL DEFAULT 35.0,
-        irpp_tranche8_taux REAL DEFAULT 35.0,
+        irpp_tranche3_taux REAL DEFAULT 25.0,
+        irpp_tranche4_taux REAL DEFAULT 30.0,
+        irpp_tranche5_taux REAL DEFAULT 33.0,
+        irpp_tranche6_taux REAL DEFAULT 36.0,
+        irpp_tranche7_taux REAL DEFAULT 38.0,
+        irpp_tranche8_taux REAL DEFAULT 40.0,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
     INSERT OR IGNORE INTO settings (id) VALUES (1);
@@ -406,37 +406,57 @@ app = FastAPI(title="SAFE PME Express", version="2.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 # ─── Helpers IRPP ─────────────────────────────────────────────────────────────
-def calculer_irpp(revenu_annuel: float) -> float:
+def calculer_irpp(revenu_annuel: float, s: dict) -> float:
+    """
+    Barème progressif légal de l'IRPP tunisien (8 tranches) :
+    Tranche 1 (0 à 5 000 TND) : 0 %
+    Tranche 2 (5 000 à 10 000 TND) : 15 %
+    Tranche 3 (10 000 à 20 000 TND) : 25 %
+    Tranche 4 (20 000 à 30 000 TND) : 30 %
+    Tranche 5 (30 000 à 40 000 TND) : 33 %
+    Tranche 6 (40 000 à 50 000 TND) : 36 %
+    Tranche 7 (50 000 à 70 000 TND) : 38 %
+    Tranche 8 (Au-delà de 70 000 TND) : 40 %
+    """
+    t1_max = s.get("irpp_tranche1_max", 5000)
+    t2_max = s.get("irpp_tranche2_max", 10000)
+    t3_max = s.get("irpp_tranche3_max", 20000)
+    t4_max = s.get("irpp_tranche4_max", 30000)
+    t5_max = s.get("irpp_tranche5_max", 40000)
+    t6_max = s.get("irpp_tranche6_max", 50000)
+    t7_max = s.get("irpp_tranche7_max", 70000)
+
     tranches = [
-        (5000, 0.00),
-        (5000, 0.15),
-        (10000, 0.20),
-        (10000, 0.25),
-        (10000, 0.30),
-        (10000, 0.33),
-        (50000, 0.35),
-        (float('inf'), 0.35),
+        (t1_max, s.get("irpp_tranche1_taux", 0.0) / 100.0),
+        (t2_max - t1_max, s.get("irpp_tranche2_taux", 15.0) / 100.0),
+        (t3_max - t2_max, s.get("irpp_tranche3_taux", 25.0) / 100.0),
+        (t4_max - t3_max, s.get("irpp_tranche4_taux", 30.0) / 100.0),
+        (t5_max - t4_max, s.get("irpp_tranche5_taux", 33.0) / 100.0),
+        (t6_max - t5_max, s.get("irpp_tranche6_taux", 36.0) / 100.0),
+        (t7_max - t6_max, s.get("irpp_tranche7_taux", 38.0) / 100.0),
+        (float('inf'), s.get("irpp_tranche8_taux", 40.0) / 100.0),
     ]
     irpp = 0.0
-    reste = max(0, revenu_annuel)
-    for plafond, taux in tranches:
+    reste = max(0.0, float(revenu_annuel))
+    for largeur, taux in tranches:
         if reste <= 0:
             break
-        base = min(reste, plafond)
+        base = min(reste, largeur)
         irpp += base * taux
         reste -= base
     return round(irpp, 3)
 
 def calculer_paie(salaire_base: float, primes: float, indemnites: float, settings_row) -> dict:
-    brut = salaire_base + primes + indemnites
-    cnss = round(brut * (settings_row["cnss_salarial"] / 100), 3)
-    css = round(brut * (settings_row["css_taux"] / 100), 3)
-    brut_imposable = max(0, brut - cnss)
-    irpp_mensuel = round(calculer_irpp(brut_imposable * 12) / 12, 3)
+    s = dict(settings_row) if settings_row else {}
+    brut = float(salaire_base) + float(primes) + float(indemnites)
+    cnss = round(brut * (s.get("cnss_salarial", 9.68) / 100.0), 3)
+    css = round(brut * (s.get("css_taux", 0.5) / 100.0), 3)
+    brut_imposable = max(0.0, brut - cnss)
+    irpp_mensuel = round(calculer_irpp(brut_imposable * 12, s) / 12.0, 3)
     net = round(brut - cnss - css - irpp_mensuel, 3)
-    cnss_patronal = round(brut * (settings_row["cnss_patronal"] / 100), 3)
-    tfp = round(brut * (settings_row["tfp_taux"] / 100), 3)
-    foprolos = round(brut * (settings_row["foprolos_taux"] / 100), 3)
+    cnss_patronal = round(brut * (s.get("cnss_patronal", 17.07) / 100.0), 3)
+    tfp = round(brut * (s.get("tfp_taux", 1.0) / 100.0), 3)
+    foprolos = round(brut * (s.get("foprolos_taux", 1.0) / 100.0), 3)
     return {
         "brut_imposable": round(brut, 3),
         "cnss_salarial": cnss,
