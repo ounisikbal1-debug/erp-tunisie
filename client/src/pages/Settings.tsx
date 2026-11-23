@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { trpc } from "@/_core/trpc";
 import { PageHeader, Panel, Table } from "@/components/primitives";
 import {
@@ -15,78 +16,380 @@ import {
 } from "../../../shared/fiscal";
 
 export default function Settings() {
+  const utils = trpc.useUtils();
   const company = trpc.company.get.useQuery();
+  const updateCompany = trpc.company.update.useMutation({
+    onSuccess: () => {
+      utils.company.get.invalidate();
+      setMessage({ type: "success", text: "Paramètres et taux SAFE ERP enregistrés avec succès !" });
+      setTimeout(() => setMessage(null), 4000);
+    },
+    onError: (err) => {
+      setMessage({ type: "error", text: "Erreur lors de l'enregistrement : " + err.message });
+    }
+  });
+
   const c = company.data;
 
-  const rows: [string, string][] = c
-    ? [
-        ["Raison sociale", c.name],
-        ["Matricule fiscal", c.matriculeFiscal],
-        ["Registre de commerce", c.registreCommerce],
-        ["Adresse", c.address],
-        ["Téléphone", c.phone],
-        ["E-mail", c.email],
-        ["Régime TVA", c.vatRegime === "assujetti" ? "Assujetti" : c.vatRegime === "exportateur" ? "Exportateur" : "Non assujetti"],
-        ["Régime fiscal", c.taxRegime === "reel" ? "Réel" : "Forfaitaire"],
-        ["Taux IS", `${c.isRate} %`],
-        ["Exercice comptable", String(c.fiscalYear)],
-        ["Taux TCL", `${(c.tclRateBp / 10).toFixed(1)} %`],
-      ]
-    : [];
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Form states
+  const [formData, setFormData] = useState({
+    name: "",
+    matriculeFiscal: "",
+    registreCommerce: "",
+    address: "",
+    phone: "",
+    email: "",
+    cnssNumber: "",
+    vatRegime: "assujetti",
+    taxRegime: "reel",
+    isRate: 15,
+    fiscalYear: 2026,
+    tclRateBp: 10,
+    vatRateStandard: 19,
+    vatRateIntermediate: 13,
+    vatRateReduced: 7,
+    stampDutyMillimes: 1000,
+    cnssEmployeeRateBp: 968,
+    cnssEmployerRateBp: 1707,
+    cssRateBp: 50,
+    headOfFamilyDeduction: 300,
+    dependentDeduction: 100,
+    foprolosRateBp: 100,
+    tfpRateBp: 100,
+    currencyCode: "TND"
+  });
+
+  useEffect(() => {
+    if (c) {
+      setFormData({
+        name: c.name || "",
+        matriculeFiscal: c.matriculeFiscal || "",
+        registreCommerce: c.registreCommerce || "",
+        address: c.address || "",
+        phone: c.phone || "",
+        email: c.email || "",
+        cnssNumber: c.cnssNumber || "",
+        vatRegime: c.vatRegime || "assujetti",
+        taxRegime: c.taxRegime || "reel",
+        isRate: c.isRate || 15,
+        fiscalYear: c.fiscalYear || 2026,
+        tclRateBp: c.tclRateBp ?? 10,
+        vatRateStandard: (c as any).vatRateStandard ?? 19,
+        vatRateIntermediate: (c as any).vatRateIntermediate ?? 13,
+        vatRateReduced: (c as any).vatRateReduced ?? 7,
+        stampDutyMillimes: (c as any).stampDutyMillimes ?? 1000,
+        cnssEmployeeRateBp: (c as any).cnssEmployeeRateBp ?? 968,
+        cnssEmployerRateBp: (c as any).cnssEmployerRateBp ?? 1707,
+        cssRateBp: (c as any).cssRateBp ?? 50,
+        headOfFamilyDeduction: (c as any).headOfFamilyDeduction ?? 300,
+        dependentDeduction: (c as any).dependentDeduction ?? 100,
+        foprolosRateBp: (c as any).foprolosRateBp ?? 100,
+        tfpRateBp: (c as any).tfpRateBp ?? 100,
+        currencyCode: (c as any).currencyCode ?? "TND"
+      });
+    }
+  }, [c]);
+
+  const handleChange = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateCompany.mutate(formData as any);
+  };
 
   return (
     <>
       <PageHeader
-        title="Paramètres"
-        subtitle="Identité de la société, taux fiscaux et barème IRPP appliqués"
+        title="Paramètres Généraux & Taux SAFE ERP"
+        subtitle="Identité légale, régime fiscal, taux de TVA, cotisations sociales CNSS et barèmes dynamiquement modifiables"
       />
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <Panel title="Identité de la société" subtitle="Mentions portées sur les factures" noPad>
-          <dl className="divide-y divide-border">
-            {(rows.length ? rows : [["Chargement…", "—"]]).map(([k, v]) => (
-              <div key={k} className="flex items-start justify-between gap-4 px-4 py-2.5">
-                <dt className="text-[12px] text-muted-foreground">{k}</dt>
-                <dd className="text-right text-[12.5px] font-medium">{v}</dd>
+      {message && (
+        <div style={{
+          padding: "12px 16px",
+          borderRadius: "8px",
+          marginBottom: "16px",
+          backgroundColor: message.type === "success" ? "rgba(22, 163, 74, 0.2)" : "rgba(220, 38, 38, 0.2)",
+          border: 1px solid ,
+          color: message.type === "success" ? "#4ade80" : "#f87171",
+          fontWeight: 600,
+          fontSize: "13.5px"
+        }}>
+          {message.text}
+        </div>
+      )}
+
+      <form onSubmit={handleSave}>
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          {/* Identité de la société */}
+          <Panel title="Identité de la Société & Coordonnées (Éditable)" subtitle="Mentions portées sur les factures et bilans">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className="text-[12px] text-muted-foreground block mb-1">Raison sociale</label>
+                <input
+                  type="text"
+                  className="w-full bg-background border border-border rounded px-3 py-1.5 text-[13px]"
+                  value={formData.name}
+                  onChange={e => handleChange("name", e.target.value)}
+                  required
+                />
               </div>
-            ))}
-          </dl>
-          <p className="border-t border-border px-4 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
-            Les coordonnées se modifient depuis le panneau base de données de la plateforme (table
-            <span className="font-mono"> company</span>).
-          </p>
-        </Panel>
+              <div>
+                <label className="text-[12px] text-muted-foreground block mb-1">Matricule Fiscal</label>
+                <input
+                  type="text"
+                  className="w-full bg-background border border-border rounded px-3 py-1.5 text-[13px]"
+                  value={formData.matriculeFiscal}
+                  onChange={e => handleChange("matriculeFiscal", e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-[12px] text-muted-foreground block mb-1">Registre de Commerce</label>
+                <input
+                  type="text"
+                  className="w-full bg-background border border-border rounded px-3 py-1.5 text-[13px]"
+                  value={formData.registreCommerce}
+                  onChange={e => handleChange("registreCommerce", e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-[12px] text-muted-foreground block mb-1">N° CNSS Employeur</label>
+                <input
+                  type="text"
+                  className="w-full bg-background border border-border rounded px-3 py-1.5 text-[13px]"
+                  value={formData.cnssNumber}
+                  onChange={e => handleChange("cnssNumber", e.target.value)}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="text-[12px] text-muted-foreground block mb-1">Adresse Siège</label>
+                <input
+                  type="text"
+                  className="w-full bg-background border border-border rounded px-3 py-1.5 text-[13px]"
+                  value={formData.address}
+                  onChange={e => handleChange("address", e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-[12px] text-muted-foreground block mb-1">Téléphone</label>
+                <input
+                  type="text"
+                  className="w-full bg-background border border-border rounded px-3 py-1.5 text-[13px]"
+                  value={formData.phone}
+                  onChange={e => handleChange("phone", e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-[12px] text-muted-foreground block mb-1">E-mail officiel</label>
+                <input
+                  type="email"
+                  className="w-full bg-background border border-border rounded px-3 py-1.5 text-[13px]"
+                  value={formData.email}
+                  onChange={e => handleChange("email", e.target.value)}
+                />
+              </div>
+            </div>
+          </Panel>
 
-        <Panel title="Taux fiscaux & sociaux" subtitle="Valeurs appliquées par les moteurs de calcul" noPad>
-          <Table head={["Paramètre", "Valeur"]}>
-            {[
-              ["TVA — taux normal", "19 %"],
-              ["TVA — taux intermédiaire", "13 %"],
-              ["TVA — taux réduit", "7 %"],
-              ["TVA — exonéré / export", "0 %"],
-              ["Timbre fiscal (facture)", fmtTND(STAMP_DUTY)],
-              ["CNSS — part salariale", `${CNSS_EMPLOYEE_RATE} %`],
-              ["CNSS — part patronale", `${CNSS_EMPLOYER_RATE} %`],
-              ["CSS — contribution de solidarité", `${CSS_RATE} %`],
-              ["IS — taux services / industrie", `${IS_RATES[0]} %`],
-              ["IS — taux autres sociétés", `${IS_RATES[1]} %`],
-              ["Acompte provisionnel", "30 % de l'IS"],
-              ["TCL — taux général", `${(TCL_RATES_BP[0] / 10).toFixed(1)} %`],
-              ["TCL — hôtellerie", `${(TCL_RATES_BP[1] / 10).toFixed(1)} %`],
-              ["Retenue à la source", `${WITHHOLDING_RATES.join(" % / ")} %`],
-              ["Abattement chef de famille", `${IRPP_HEAD_OF_FAMILY_DEDUCTION} TND / an`],
-              ["Abattement par personne à charge", `${IRPP_DEPENDENT_DEDUCTION} TND / an`],
-            ].map(([k, v]) => (
-              <tr key={k}>
-                <td className="text-muted-foreground">{k}</td>
-                <td className="num text-right font-semibold">{v}</td>
-              </tr>
-            ))}
-          </Table>
-        </Panel>
-      </div>
+          {/* Régimes & Paramètres Fiscaux Modifiables */}
+          <Panel title="Régimes & Taux Fiscaux (SAFE ERP)" subtitle="TVA, IS, TCL et Timbre fiscal configurables">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className="text-[12px] text-muted-foreground block mb-1">Régime TVA</label>
+                <select
+                  className="w-full bg-background border border-border rounded px-3 py-1.5 text-[13px]"
+                  value={formData.vatRegime}
+                  onChange={e => handleChange("vatRegime", e.target.value)}
+                >
+                  <option value="assujetti">Assujetti standard</option>
+                  <option value="exportateur">Exportateur total</option>
+                  <option value="non_assujetti">Non assujetti</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[12px] text-muted-foreground block mb-1">Régime Fiscal</label>
+                <select
+                  className="w-full bg-background border border-border rounded px-3 py-1.5 text-[13px]"
+                  value={formData.taxRegime}
+                  onChange={e => handleChange("taxRegime", e.target.value)}
+                >
+                  <option value="reel">Régime Réel</option>
+                  <option value="forfaitaire">Régime Forfaitaire</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[12px] text-muted-foreground block mb-1">Taux IS (%)</label>
+                <input
+                  type="number"
+                  className="w-full bg-background border border-border rounded px-3 py-1.5 text-[13px]"
+                  value={formData.isRate}
+                  onChange={e => handleChange("isRate", parseInt(e.target.value) || 0)}
+                />
+              </div>
+              <div>
+                <label className="text-[12px] text-muted-foreground block mb-1">Exercice Comptable</label>
+                <input
+                  type="number"
+                  className="w-full bg-background border border-border rounded px-3 py-1.5 text-[13px]"
+                  value={formData.fiscalYear}
+                  onChange={e => handleChange("fiscalYear", parseInt(e.target.value) || 2026)}
+                />
+              </div>
+              <div>
+                <label className="text-[12px] text-muted-foreground block mb-1">TVA Taux Normal (%)</label>
+                <input
+                  type="number"
+                  className="w-full bg-background border border-border rounded px-3 py-1.5 text-[13px]"
+                  value={formData.vatRateStandard}
+                  onChange={e => handleChange("vatRateStandard", parseInt(e.target.value) || 19)}
+                />
+              </div>
+              <div>
+                <label className="text-[12px] text-muted-foreground block mb-1">TVA Intermédiaire (%)</label>
+                <input
+                  type="number"
+                  className="w-full bg-background border border-border rounded px-3 py-1.5 text-[13px]"
+                  value={formData.vatRateIntermediate}
+                  onChange={e => handleChange("vatRateIntermediate", parseInt(e.target.value) || 13)}
+                />
+              </div>
+              <div>
+                <label className="text-[12px] text-muted-foreground block mb-1">TVA Taux Réduit (%)</label>
+                <input
+                  type="number"
+                  className="w-full bg-background border border-border rounded px-3 py-1.5 text-[13px]"
+                  value={formData.vatRateReduced}
+                  onChange={e => handleChange("vatRateReduced", parseInt(e.target.value) || 7)}
+                />
+              </div>
+              <div>
+                <label className="text-[12px] text-muted-foreground block mb-1">Timbre Fiscal (Millimes)</label>
+                <input
+                  type="number"
+                  className="w-full bg-background border border-border rounded px-3 py-1.5 text-[13px]"
+                  value={formData.stampDutyMillimes}
+                  onChange={e => handleChange("stampDutyMillimes", parseInt(e.target.value) || 1000)}
+                />
+              </div>
+            </div>
+          </Panel>
+        </div>
 
-      <Panel title="Barème IRPP en vigueur" subtitle="8 tranches progressives — 0 % à 40 %" className="mt-4" noPad>
+        {/* Taux Sociaux, Salariaux & Patronaux issus de SAFE ERP */}
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2 mt-4">
+          <Panel title="Taux Sociaux & Retenues (Paie SAFE ERP)" subtitle="Cotisations CNSS, CSS, TFP & FOPROLOS modifiables">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className="text-[12px] text-muted-foreground block mb-1">CNSS Part Salariale (%)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="w-full bg-background border border-border rounded px-3 py-1.5 text-[13px]"
+                  value={(formData.cnssEmployeeRateBp / 100).toFixed(2)}
+                  onChange={e => handleChange("cnssEmployeeRateBp", Math.round(parseFloat(e.target.value) * 100) || 968)}
+                />
+              </div>
+              <div>
+                <label className="text-[12px] text-muted-foreground block mb-1">CNSS Part Patronale (%)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="w-full bg-background border border-border rounded px-3 py-1.5 text-[13px]"
+                  value={(formData.cnssEmployerRateBp / 100).toFixed(2)}
+                  onChange={e => handleChange("cnssEmployerRateBp", Math.round(parseFloat(e.target.value) * 100) || 1707)}
+                />
+              </div>
+              <div>
+                <label className="text-[12px] text-muted-foreground block mb-1">CSS Solidarité Sociale (%)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="w-full bg-background border border-border rounded px-3 py-1.5 text-[13px]"
+                  value={(formData.cssRateBp / 100).toFixed(2)}
+                  onChange={e => handleChange("cssRateBp", Math.round(parseFloat(e.target.value) * 100) || 50)}
+                />
+              </div>
+              <div>
+                <label className="text-[12px] text-muted-foreground block mb-1">TFP Taxe Formation Pro (%)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="w-full bg-background border border-border rounded px-3 py-1.5 text-[13px]"
+                  value={(formData.tfpRateBp / 100).toFixed(2)}
+                  onChange={e => handleChange("tfpRateBp", Math.round(parseFloat(e.target.value) * 100) || 100)}
+                />
+              </div>
+              <div>
+                <label className="text-[12px] text-muted-foreground block mb-1">FOPROLOS Logement Social (%)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="w-full bg-background border border-border rounded px-3 py-1.5 text-[13px]"
+                  value={(formData.foprolosRateBp / 100).toFixed(2)}
+                  onChange={e => handleChange("foprolosRateBp", Math.round(parseFloat(e.target.value) * 100) || 100)}
+                />
+              </div>
+              <div>
+                <label className="text-[12px] text-muted-foreground block mb-1">Devise Principale</label>
+                <input
+                  type="text"
+                  className="w-full bg-background border border-border rounded px-3 py-1.5 text-[13px]"
+                  value={formData.currencyCode}
+                  onChange={e => handleChange("currencyCode", e.target.value)}
+                />
+              </div>
+            </div>
+          </Panel>
+
+          <Panel title="Déductions IRPP & Avantages Fiscaux" subtitle="Abattements annuels légaux (TND)">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className="text-[12px] text-muted-foreground block mb-1">Abattement Chef de Famille (TND/an)</label>
+                <input
+                  type="number"
+                  className="w-full bg-background border border-border rounded px-3 py-1.5 text-[13px]"
+                  value={formData.headOfFamilyDeduction}
+                  onChange={e => handleChange("headOfFamilyDeduction", parseInt(e.target.value) || 300)}
+                />
+              </div>
+              <div>
+                <label className="text-[12px] text-muted-foreground block mb-1">Abattement par Enfant à Charge (TND/an)</label>
+                <input
+                  type="number"
+                  className="w-full bg-background border border-border rounded px-3 py-1.5 text-[13px]"
+                  value={formData.dependentDeduction}
+                  onChange={e => handleChange("dependentDeduction", parseInt(e.target.value) || 100)}
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-border flex justify-end">
+              <button
+                type="submit"
+                disabled={updateCompany.isPending}
+                style={{
+                  backgroundColor: "#2563eb",
+                  color: "#ffffff",
+                  padding: "10px 24px",
+                  borderRadius: "6px",
+                  fontWeight: "bold",
+                  border: "none",
+                  cursor: "pointer"
+                }}
+              >
+                {updateCompany.isPending ? "Enregistrement en cours..." : "💾 Enregistrer Tous les Paramètres & Taux"}
+              </button>
+            </div>
+          </Panel>
+        </div>
+      </form>
+
+      <Panel title="Barème IRPP en Vigueur (Loi de Finances 2024-48)" subtitle="8 tranches progressives — 0 % à 40 %" className="mt-4" noPad>
         <Table head={["Tranche", "Bornes annuelles (TND)", "Taux marginal"]}>
           {IRPP_BRACKETS.map((b, i) => (
             <tr key={i}>
@@ -98,71 +401,6 @@ export default function Settings() {
             </tr>
           ))}
         </Table>
-        <p className="border-t border-border px-4 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
-          Barème progressif appliqué au revenu net imposable annualisé, puis divisé par 12 pour la retenue mensuelle
-          à la source. Les abattements familiaux sont déduits de l'impôt annuel ainsi calculé.
-        </p>
-      </Panel>
-
-      <Panel title="Installation & accès réseau" subtitle="PC, réseau local et interface web" className="mt-4">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <div className="rounded-lg border border-border bg-secondary/30 p-3">
-            <p className="text-[12px] font-semibold text-navy">1 · Installer sur PC</p>
-            <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">
-              Ouvrez l'ERP dans Chrome, Edge ou Safari, puis cliquez sur <strong>⤓ Installer</strong> dans la barre
-              supérieure (ou l'icône d'installation dans la barre d'adresse). L'application s'ouvre ensuite dans sa
-              propre fenêtre, avec une icône sur le bureau et dans le menu Démarrer — sans navigateur visible.
-            </p>
-          </div>
-          <div className="rounded-lg border border-border bg-secondary/30 p-3">
-            <p className="text-[12px] font-semibold text-navy">2 · Accès réseau local</p>
-            <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">
-              Sur le poste serveur, l'ERP écoute sur toutes les interfaces. Les autres postes du bureau y accèdent via
-              l'adresse IP locale du serveur, par exemple <span className="font-mono">http://192.168.1.20:3000</span>.
-              Aucune installation n'est nécessaire sur les postes clients : un navigateur suffit.
-            </p>
-          </div>
-          <div className="rounded-lg border border-border bg-secondary/30 p-3">
-            <p className="text-[12px] font-semibold text-navy">3 · Interface web</p>
-            <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">
-              La même application sert l'interface web et l'API. Après publication, elle est accessible depuis
-              n'importe quel navigateur, sur ordinateur comme sur mobile, avec la même base de données.
-            </p>
-          </div>
-        </div>
-        <p className="mt-3 rounded-lg bg-gold-soft/50 p-2.5 text-[11px] leading-relaxed text-[hsl(38_72%_30%)]">
-          Les données sont stockées côté serveur : tous les postes du réseau voient la même comptabilité, la même paie
-          et les mêmes factures, en temps réel.
-        </p>
-      </Panel>
-
-      <Panel title="Périmètre de l'application" subtitle="Ce que l'ERP fait et ne fait pas" className="mt-4">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="rounded-lg border border-border bg-secondary/30 p-3">
-            <p className="text-[12px] font-semibold text-success">Inclus</p>
-            <ul className="mt-1.5 space-y-1 text-[11.5px] text-muted-foreground">
-              <li>Facturation, achats, TVA et timbre fiscal</li>
-              <li>Paie complète : CNSS 9,68 % / 17,07 %, CSS 0,5 %, IRPP 8 tranches</li>
-              <li>Comptabilité générale et balance</li>
-              <li>Immobilisations et amortissements linéaires</li>
-              <li>Trésorerie et tableau de bord</li>
-              <li>Calculs TVA, TCL, IS et acomptes provisionnels</li>
-              <li>Transmission directe à la Télédéclaration TTN et à e-Fatoura (une fois les clés d'API saisies)</li>
-            </ul>
-          </div>
-          <div className="rounded-lg border border-border bg-secondary/30 p-3">
-            <p className="text-[12px] font-semibold text-destructive">Non inclus</p>
-            <ul className="mt-1.5 space-y-1 text-[11.5px] text-muted-foreground">
-              <li>Envoi d'e-mails ou de factures par e-mail</li>
-              <li>Paiement en ligne ou prélèvement bancaire</li>
-              <li>Signature électronique des documents</li>
-            </ul>
-            <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-              La transmission TTN / e-Fatoura nécessite vos identifiants d'API, saisis dans Web Admin → Secrets. Sans
-              ces clés, l'ERP refuse l'envoi et l'indique — il ne simule jamais une transmission.
-            </p>
-          </div>
-        </div>
       </Panel>
     </>
   );
