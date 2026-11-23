@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>SAFE PME Express — Facturation, Paie & e-Fatoura TEIF</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --safe-blue: #0f1e3a;
+            --safe-gold: #d4af37;
+        }
+        body { background-color: #f4f6fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .navbar-safe { background: linear-gradient(135deg, #0f1e3a 0%, #1e3a8a 100%); color: white; padding: 14px 24px; }
+        .card-custom { border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .badge-safe { background-color: #d97706; color: white; font-weight: 600; padding: 4px 8px; border-radius: 4px; }
+        .nav-pills .nav-link.active { background-color: #2563eb; font-weight: 600; }
+        .table-custom th { background-color: #0f172a; color: white; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <nav class="navbar-safe d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-3">
+            <span style="font-size: 28px;">🚀</span>
+            <div>
+                <h4 class="m-0 fw-bold">SAFE PME Express & E-Fatoura TEIF</h4>
+                <small class="text-white-50">Facturation rapide, Paie tunisienne, Comptabilite en Dinars Millimes & E-Facture Officielle</small>
+            </div>
+        </div>
+        <div class="text-end">
+            <span class="badge-safe" id="hw-badge">Verrou Hardware ID : {{HARDWARE_ID}}</span>
+            <div class="small text-white-50 mt-1">Edition Autonome 2026 | Port 8006</div>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-4 px-4">
+        <ul class="nav nav-pills mb-4 gap-2" id="pmeTabs">
+            <li class="nav-item"><button class="nav-link active" onclick="showTab('tab-factures', event)">🧾 Facturation & E-Fatoura TEIF</button></li>
+            <li class="nav-item"><button class="nav-link" onclick="showTab('tab-paie', event)">💵 Paie & Salaries (IRPP / CNSS)</button></li>
+            <li class="nav-item"><button class="nav-link" onclick="showTab('tab-settings', event)">⚙️ Parametres & Taux SAFE (Modifiables)</button></li>
+        </ul>
+
+        <!-- TAB 1 : FACTURES -->
+        <div id="tab-factures" class="tab-pane-custom">
+            <div class="card card-custom p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold m-0">Factures Clients Recentes & Fichiers XML e-Fatoura TEIF</h5>
+                    <button class="btn btn-primary btn-sm" onclick="alert('Module de creation de facture express')">+ Nouvelle Facture</button>
+                </div>
+                <table class="table table-hover table-custom table-bordered">
+                    <thead>
+                        <tr>
+                            <th>N° Piece</th>
+                            <th>Client</th>
+                            <th>Matricule Fiscal</th>
+                            <th>Date</th>
+                            <th class="text-end">Total HT (TND)</th>
+                            <th class="text-end">TVA (TND)</th>
+                            <th class="text-end">Timbre</th>
+                            <th class="text-end">Total TTC (TND)</th>
+                            <th class="text-center">Action e-Fatoura</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoices-tbody">
+                        <tr><td colspan="9" class="text-center">Chargement...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB 2 : PAIE -->
+        <div id="tab-paie" class="tab-pane-custom d-none">
+            <div class="card card-custom p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold m-0">Livre de Paie — Bareme 8 Tranches & Declarations Sociales</h5>
+                    <button class="btn btn-success btn-sm" onclick="alert('Calcul mensuel valide')">🔄 Calculer les Bulletins du Mois</button>
+                </div>
+                <table class="table table-hover table-custom table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Matricule</th>
+                            <th>Salarie</th>
+                            <th>CIN</th>
+                            <th class="text-end">Salaire Brut</th>
+                            <th class="text-end">CNSS Salariale (9.68%)</th>
+                            <th class="text-end">IRPP</th>
+                            <th class="text-end">CSS (0.5%)</th>
+                            <th class="text-end">Net a Payer (TND)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="payroll-tbody">
+                        <tr><td colspan="8" class="text-center">Chargement...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB 3 : PARAMETRES MODIFIABLES -->
+        <div id="tab-settings" class="tab-pane-custom d-none">
+            <div class="card card-custom p-4">
+                <h5 class="fw-bold mb-3">Configuration & Taux Legaux SAFE ERP (Dynamiquement Modifiables)</h5>
+                <form id="settingsForm" onsubmit="saveSettings(event)">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Raison Sociale</label>
+                            <input type="text" id="cfg_name" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Matricule Fiscal</label>
+                            <input type="text" id="cfg_mat" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Registre de Commerce</label>
+                            <input type="text" id="cfg_rc" class="form-control form-control-sm">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Adresse</label>
+                            <input type="text" id="cfg_adresse" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">Telephone</label>
+                            <input type="text" id="cfg_tel" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">E-mail</label>
+                            <input type="email" id="cfg_email" class="form-control form-control-sm">
+                        </div>
+
+                        <div class="col-12"><hr class="my-2"></div>
+                        <div class="col-12"><h6 class="fw-bold text-primary">Taux de Taxes & Cotisations (SAFE ERP)</h6></div>
+
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">TVA Normale (%)</label>
+                            <input type="number" step="0.1" id="cfg_tva_normale" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">TVA Intermediaire (%)</label>
+                            <input type="number" step="0.1" id="cfg_tva_intermediaire" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">TVA Reduite (%)</label>
+                            <input type="number" step="0.1" id="cfg_tva_reduite" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">Timbre Fiscal (DT)</label>
+                            <input type="number" step="0.1" id="cfg_timbre" class="form-control form-control-sm">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">CNSS Salariale (%)</label>
+                            <input type="number" step="0.01" id="cfg_cnss_sal" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">CNSS Patronale (%)</label>
+                            <input type="number" step="0.01" id="cfg_cnss_pat" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">CSS (%)</label>
+                            <input type="number" step="0.01" id="cfg_css" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">Taux IS (%)</label>
+                            <input type="number" id="cfg_is" class="form-control form-control-sm">
+                        </div>
+
+                        <div class="col-12 text-end mt-3">
+                            <button type="submit" class="btn btn-primary fw-bold px-4">💾 Enregistrer Tous les Taux & Parametres</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabId, ev) {
+            var panes = document.querySelectorAll('.tab-pane-custom');
+            for (var i = 0; i < panes.length; i++) {
+                panes[i].classList.add('d-none');
+            }
+            document.getElementById(tabId).classList.remove('d-none');
+            var links = document.querySelectorAll('#pmeTabs .nav-link');
+            for (var j = 0; j < links.length; j++) {
+                links[j].classList.remove('active');
+            }
+            if (ev && ev.target) {
+                ev.target.classList.add('active');
+            }
+        }
+
+        function loadInvoices() {
+            fetch('/api/invoices')
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    var tbody = document.getElementById('invoices-tbody');
+                    var html = '';
+                    for (var i = 0; i < data.length; i++) {
+                        var inv = data[i];
+                        html += '<tr>' +
+                            '<td class="fw-bold text-primary">' + inv.numero + '</td>' +
+                            '<td>' + inv.client_nom + '</td>' +
+                            '<td><code>' + inv.client_mat + '</code></td>' +
+                            '<td>' + inv.date_facture + '</td>' +
+                            '<td class="text-end fw-bold">' + inv.total_ht.toFixed(3) + '</td>' +
+                            '<td class="text-end">' + inv.total_tva.toFixed(3) + '</td>' +
+                            '<td class="text-end">' + inv.timbre.toFixed(3) + '</td>' +
+                            '<td class="text-end fw-bold text-success">' + inv.total_ttc.toFixed(3) + ' DT</td>' +
+                            '<td class="text-center">' +
+                                '<a href="/api/efatoura/xml/' + inv.id + '" target="_blank" class="btn btn-outline-dark btn-sm">📄 Telecharger XML TEIF</a>' +
+                            '</td>' +
+                        '</tr>';
+                    }
+                    tbody.innerHTML = html;
+                });
+        }
+
+        function loadPayroll() {
+            fetch('/api/payroll')
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    var tbody = document.getElementById('payroll-tbody');
+                    var html = '';
+                    for (var i = 0; i < data.length; i++) {
+                        var emp = data[i];
+                        html += '<tr>' +
+                            '<td class="fw-bold">' + emp.matricule + '</td>' +
+                            '<td>' + emp.nom + '</td>' +
+                            '<td>' + emp.cin + '</td>' +
+                            '<td class="text-end fw-bold">' + emp.salaire_base.toFixed(3) + '</td>' +
+                            '<td class="text-end text-danger">' + emp.cnss_salarie.toFixed(3) + '</td>' +
+                            '<td class="text-end text-danger">' + emp.irpp.toFixed(3) + '</td>' +
+                            '<td class="text-end text-danger">' + emp.css.toFixed(3) + '</td>' +
+                            '<td class="text-end fw-bold text-success">' + emp.salaire_net.toFixed(3) + ' DT</td>' +
+                        '</tr>';
+                    }
+                    tbody.innerHTML = html;
+                });
+        }
+
+        function loadSettings() {
+            fetch('/api/settings')
+                .then(function(res) { return res.json(); })
+                .then(function(s) {
+                    document.getElementById('cfg_name').value = s.name || '';
+                    document.getElementById('cfg_mat').value = s.matricule_fiscal || '';
+                    document.getElementById('cfg_rc').value = s.registre_commerce || '';
+                    document.getElementById('cfg_adresse').value = s.adresse || '';
+                    document.getElementById('cfg_tel').value = s.telephone || '';
+                    document.getElementById('cfg_email').value = s.email || '';
+                    document.getElementById('cfg_tva_normale').value = s.tva_normale;
+                    document.getElementById('cfg_tva_intermediaire').value = s.tva_intermediaire;
+                    document.getElementById('cfg_tva_reduite').value = s.tva_reduite;
+                    document.getElementById('cfg_timbre').value = s.timbre_fiscal;
+                    document.getElementById('cfg_cnss_sal').value = s.cnss_salarie;
+                    document.getElementById('cfg_cnss_pat').value = s.cnss_patronale;
+                    document.getElementById('cfg_css').value = s.css;
+                    document.getElementById('cfg_is').value = s.taux_is;
+                });
+        }
+
+        function saveSettings(e) {
+            e.preventDefault();
+            var payload = {
+                name: document.getElementById('cfg_name').value,
+                matricule_fiscal: document.getElementById('cfg_mat').value,
+                registre_commerce: document.getElementById('cfg_rc').value,
+                adresse: document.getElementById('cfg_adresse').value,
+                telephone: document.getElementById('cfg_tel').value,
+                email: document.getElementById('cfg_email').value,
+                regime_tva: 'assujetti',
+                regime_fiscal: 'reel',
+                taux_is: parseInt(document.getElementById('cfg_is').value) || 15,
+                tva_normale: parseFloat(document.getElementById('cfg_tva_normale').value) || 19.0,
+                tva_intermediaire: parseFloat(document.getElementById('cfg_tva_intermediaire').value) || 13.0,
+                tva_reduite: parseFloat(document.getElementById('cfg_tva_reduite').value) || 7.0,
+                timbre_fiscal: parseFloat(document.getElementById('cfg_timbre').value) || 1.0,
+                cnss_salarie: parseFloat(document.getElementById('cfg_cnss_sal').value) || 9.68,
+                cnss_patronale: parseFloat(document.getElementById('cfg_cnss_pat').value) || 17.07,
+                css: parseFloat(document.getElementById('cfg_css').value) || 0.5,
+                tfp: 1.0,
+                foprolos: 1.0,
+                abattement_famille: 300.0,
+                abattement_enfant: 100.0
+            };
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(out) {
+                alert(out.message || 'Parametres sauvegardes avec succes !');
+            });
+        }
+
+        window.onload = function() {
+            loadInvoices();
+            loadPayroll();
+            loadSettings();
+        };
+    </script>
+</body>
+</html>
