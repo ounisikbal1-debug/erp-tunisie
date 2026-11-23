@@ -59,6 +59,19 @@ export const company = pgTable(
     tclRateBp: integer("tcl_rate_bp").notNull().default(10),
     /** Numéro d'affiliation CNSS de l'employeur */
     cnssNumber: text("cnss_number").notNull().default(""),
+    // Parametres & Taux avances issus de SAFE ERP
+    vatRateStandard: integer("vat_rate_standard").notNull().default(19),
+    vatRateIntermediate: integer("vat_rate_intermediate").notNull().default(13),
+    vatRateReduced: integer("vat_rate_reduced").notNull().default(7),
+    stampDutyMillimes: integer("stamp_duty_millimes").notNull().default(1000),
+    cnssEmployeeRateBp: integer("cnss_employee_rate_bp").notNull().default(968), // 9.68%
+    cnssEmployerRateBp: integer("cnss_employer_rate_bp").notNull().default(1707), // 17.07%
+    cssRateBp: integer("css_rate_bp").notNull().default(50), // 0.5%
+    headOfFamilyDeduction: integer("head_of_family_deduction").notNull().default(300),
+    dependentDeduction: integer("dependent_deduction").notNull().default(100),
+    foprolosRateBp: integer("foprolos_rate_bp").notNull().default(100), // 1.0% SAFE ERP
+    tfpRateBp: integer("tfp_rate_bp").notNull().default(100), // 1.0% SAFE ERP
+    currencyCode: text("currency_code").notNull().default("TND"),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("company_owner_idx").on(t.ownerId)],
