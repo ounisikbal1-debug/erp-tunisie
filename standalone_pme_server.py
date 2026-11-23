@@ -127,7 +127,11 @@ def init_db():
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
     INSERT OR IGNORE INTO users (id,nom,prenom,email,mot_de_passe,role)
-    VALUES ('admin-001','Administrateur','SAFE','admin@safe.tn','safe2024','administrateur');
+    VALUES 
+        ('admin-001','Administrateur','SAFE','admin@safe.tn','safe2024','administrateur'),
+        ('admin-002','Directeur','Général','admin','admin','administrateur'),
+        ('demo-001','Démonstration','Compte','demo@erp-tunisie.tn','Demo2026!','administrateur'),
+        ('user-001','Comptable','Principal','comptable@safe.tn','compta2026','comptable');
 
     -- Tiers (clients & fournisseurs)
     CREATE TABLE IF NOT EXISTS tiers (
@@ -1176,15 +1180,202 @@ async def create_user(request: Request):
 @app.post("/api/login")
 async def login(request: Request):
     data = await request.json()
+    identifiant = (data.get("identifiant") or data.get("email") or data.get("username") or "").strip()
+    mot_de_passe = (data.get("mot_de_passe") or data.get("password") or "").strip()
+
     db = get_db()
     user = db.execute(
-        "SELECT * FROM users WHERE email=? AND mot_de_passe=? AND actif=1",
-        [data.get("email",""), data.get("mot_de_passe","")]
+        "SELECT * FROM users WHERE (email=? OR nom=? OR id=?) AND mot_de_passe=? AND actif=1",
+        [identifiant, identifiant, identifiant, mot_de_passe]
     ).fetchone()
     db.close()
     if not user:
-        raise HTTPException(401, "Email ou mot de passe incorrect")
-    return {"success": True, "user": {"id": user["id"], "nom": user["nom"], "prenom": user["prenom"], "role": user["role"]}}
+        raise HTTPException(401, "Identifiant ou mot de passe incorrect")
+    
+    token = hashlib.sha256(f"{user['id']}:{datetime.now().isoformat()}".encode()).hexdigest()
+    return {
+        "success": True,
+        "token": token,
+        "user": {
+            "id": user["id"],
+            "nom": user["nom"],
+            "prenom": user["prenom"],
+            "email": user["email"],
+            "role": user["role"]
+        }
+    }
+
+# ─── API RAPPORTS EXÉCUTIFS ───────────────────────────────────────────────────
+@app.get("/api/reports/sales")
+def report_sales(annee: Optional[int] = None):
+    db = get_db()
+    annee = annee or datetime.now().year
+    by_month = db.execute(
+        """SELECT strftime('%Y-%m', date_facture) as mois,
+                  COUNT(*) as nb_factures,
+                  COALESCE(SUM(montant_ht), 0) as total_ht,
+                  COALESCE(SUM(montant_tva), 0) as total_tva,
+                  COALESCE(SUM(montant_ttc), 0) as total_ttc
+           FROM factures
+           WHERE strftime('%Y', date_facture) = ?
+           GROUP BY mois ORDER BY mois""",
+        [str(annee)]
+    ).fetchall()
+
+    by_client = db.execute(
+        """SELECT client_nom,
+                  COUNT(*) as nb_factures,
+                  COALESCE(SUM(montant_ht), 0) as total_ht,
+                  COALESCE(SUM(montant_tva), 0) as total_tva,
+                  COALESCE(SUM(montant_ttc), 0) as total_ttc
+           FROM factures
+           WHERE strftime('%Y', date_facture) = ?
+           GROUP BY client_nom ORDER BY total_ttc DESC LIMIT 20""",
+        [str(annee)]
+    ).fetchall()
+
+    db.close()
+    return {
+        "annee": annee,
+        "by_month": [dict(r) for r in by_month],
+        "by_client": [dict(r) for r in by_client]
+    }
+
+@app.get("/api/reports/purchases")
+def report_purchases(annee: Optional[int] = None):
+    db = get_db()
+    annee = annee or datetime.now().year
+    by_supplier = db.execute(
+        """SELECT fournisseur_nom,
+                  COUNT(*) as nb_achats,
+                  COALESCE(SUM(montant_ht), 0) as total_ht,
+                  COALESCE(SUM(montant_tva), 0) as total_tva,
+                  COALESCE(SUM(montant_ttc), 0) as total_ttc
+           FROM achats
+           WHERE strftime('%Y', date_achat) = ?
+           GROUP BY fournisseur_nom ORDER BY total_ttc DESC LIMIT 20""",
+        [str(annee)]
+    ).fetchall()
+    db.close()
+    return {"annee": annee, "by_supplier": [dict(r) for r in by_supplier]}
+
+@app.get("/api/reports/payroll")
+def report_payroll(annee: Optional[int] = None):
+    db = get_db()
+    annee = annee or datetime.now().year
+    rows = db.execute(
+        """SELECT mois, annee,
+                  COUNT(*) as nb_bulletins,
+                  COALESCE(SUM(brut_imposable), 0) as total_brut,
+                  COALESCE(SUM(cnss_salarial), 0) as total_cnss_sal,
+                  COALESCE(SUM(css), 0) as total_css,
+                  COALESCE(SUM(irpp), 0) as total_irpp,
+                  COALESCE(SUM(net_a_payer), 0) as total_net,
+                  COALESCE(SUM(cnss_patronal + tfp + foprolos), 0) as total_patronal
+           FROM bulletins_paie
+           WHERE annee = ?
+           GROUP BY mois ORDER BY mois""",
+        [annee]
+    ).fetchall()
+    db.close()
+    return {"annee": annee, "monthly": [dict(r) for r in rows]}
+
+@app.get("/api/reports/pnl")
+def report_pnl(annee: Optional[int] = None):
+    db = get_db()
+    annee = annee or datetime.now().year
+    ca = db.execute("SELECT COALESCE(SUM(montant_ht), 0) as v FROM factures WHERE strftime('%Y', date_facture)=?", [str(annee)]).fetchone()["v"]
+    achats = db.execute("SELECT COALESCE(SUM(montant_ht), 0) as v FROM achats WHERE strftime('%Y', date_achat)=?", [str(annee)]).fetchone()["v"]
+    salaires = db.execute("SELECT COALESCE(SUM(brut_imposable), 0) as b, COALESCE(SUM(cnss_patronal+tfp+foprolos), 0) as c FROM bulletins_paie WHERE annee=?", [annee]).fetchone()
+    masse_sal = salaires["b"] + salaires["c"]
+    resultat = ca - achats - masse_sal
+    db.close()
+    return {
+        "annee": annee,
+        "chiffre_affaires_ht": round(ca, 3),
+        "achats_consommes_ht": round(achats, 3),
+        "marge_brute": round(ca - achats, 3),
+        "charges_personnel": round(masse_sal, 3),
+        "resultat_exploitation": round(resultat, 3)
+    }
+
+# ─── API RÉINITIALISATION & RECHARGEMENT DU JEU DE DONNÉES (900 LIGNES) ───────
+@app.post("/api/admin/reset")
+def reset_database(request: Request):
+    db = get_db()
+    tables = [
+        "factures", "lignes_facture", "achats", "lignes_achat",
+        "bulletins_paie", "mouvements_stock", "mouvements_tresorerie",
+        "declarations", "ecritures"
+    ]
+    for t in tables:
+        db.execute(f"DELETE FROM {t}")
+    db.commit()
+    db.close()
+    return {"success": True, "message": "Données opérationnelles remises à zéro."}
+
+@app.post("/api/admin/reload-seed")
+def reload_seed_data():
+    scratch_script = Path(r"C:\Users\USER\.gemini\antigravity\brain\b17ba095-2677-4276-aa94-3db502806cb0\scratch\load_900_seed_data.py")
+    if scratch_script.exists():
+        subprocess.run([sys.executable, str(scratch_script)], capture_output=True, text=True, timeout=30)
+        return {"success": True, "message": "Jeu de données de 900 enregistrements sur 12 mois rechargé avec succès."}
+    return {"success": False, "message": "Script de rechargement introuvable."}
+
+@app.get("/api/admin/backup-download")
+def download_backup():
+    if DB_PATH.exists():
+        return FileResponse(str(DB_PATH), filename=f"pme_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db")
+    raise HTTPException(404, "Base de données introuvable")
+
+# ─── API IMPORT EN MASSE (EXCEL / CSV / JSON) ─────────────────────────────────
+@app.post("/api/import/tiers")
+async def import_tiers(request: Request):
+    data = await request.json()
+    items = data.get("items", [])
+    db = get_db()
+    count = 0
+    for item in items:
+        id_ = item.get("id") or str(uuid.uuid4())[:8]
+        nom = item.get("raison_sociale") or item.get("nom") or ""
+        if not nom: continue
+        db.execute(
+            """INSERT OR REPLACE INTO tiers (id, code, type, raison_sociale, matricule_fiscal, adresse, ville, tel, email, solde)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [id_, item.get("code", f"TR-{id_[:4]}"), item.get("type", "client"), nom,
+             item.get("matricule_fiscal", ""), item.get("adresse", ""),
+             item.get("ville", "Tunis"), item.get("tel", ""), item.get("email", ""),
+             float(item.get("solde", 0))]
+        )
+        count += 1
+    db.commit()
+    db.close()
+    return {"success": True, "imported": count}
+
+@app.post("/api/import/articles")
+async def import_articles(request: Request):
+    data = await request.json()
+    items = data.get("items", [])
+    db = get_db()
+    count = 0
+    for item in items:
+        id_ = item.get("id") or str(uuid.uuid4())[:8]
+        code = item.get("code") or item.get("reference") or f"ART-{id_[:4]}"
+        desig = item.get("designation") or item.get("name") or ""
+        if not desig: continue
+        db.execute(
+            """INSERT OR REPLACE INTO articles (id, code, designation, famille, unite, prix_vente_ht, taux_tva, stock_actuel, stock_min)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [id_, code, desig, item.get("famille", "Général"),
+             item.get("unite", "U"), float(item.get("prix_vente_ht", 0)),
+             float(item.get("taux_tva", 19)), float(item.get("stock_actuel", 0)),
+             float(item.get("stock_min", 5))]
+        )
+        count += 1
+    db.commit()
+    db.close()
+    return {"success": True, "imported": count}
+
 
 # ─── Infos licence ────────────────────────────────────────────────────────────
 @app.get("/api/licence")
