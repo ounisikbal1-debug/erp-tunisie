@@ -38,17 +38,9 @@ def get_hardware_id() -> str:
     raw = f"{uuid.getnode()}-{socket.gethostname()}-{sys.platform}".encode("utf-8")
     return "HW-" + hashlib.sha256(raw).hexdigest()[:12].upper()
 
-def compute_valid_license(hw_id: str, exp_date_str: str) -> str:
-    clean_exp = exp_date_str.replace("-", "")
-    payload = f"{MODULE_CODE}|{hw_id.upper()}|{clean_exp}".encode("utf-8")
-    expected = hmac.new(SECRET_SALT, payload, hashlib.sha256).hexdigest().upper()
-    expected_parts = [expected[i:i+4] for i in range(0, 16, 4)]
-    return f"SAFE-{clean_exp}-{'-'.join(expected_parts)}"
-
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    # Company settings
     c.execute("""
     CREATE TABLE IF NOT EXISTS company (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -79,7 +71,6 @@ def init_db():
     if c.fetchone()[0] == 0:
         c.execute("INSERT INTO company (name) VALUES ('Société Tunisienne SARL')")
     
-    # Invoices
     c.execute("""
     CREATE TABLE IF NOT EXISTS factures (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -94,7 +85,6 @@ def init_db():
         statut TEXT DEFAULT 'VALIDEE'
     )
     """)
-    # Seed sample invoices if empty
     c.execute("SELECT COUNT(*) FROM factures")
     if c.fetchone()[0] == 0:
         c.execute("""
@@ -104,7 +94,6 @@ def init_db():
         ('FAC-2026-002', 'COMPTOIR INDUSTRIEL TUNISIEN', '0459201/C/M/000', '2026-02-18', 4800.000, 912.000, 1.000, 5713.000)
         """)
 
-    # Employees & Payroll
     c.execute("""
     CREATE TABLE IF NOT EXISTS salaries (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -190,7 +179,7 @@ def update_settings(data: SettingsUpdate):
     ))
     conn.commit()
     conn.close()
-    return {"status": "success", "message": "Paramètres et taux SAFE ERP enregistrés avec succès !"}
+    return {"status": "success", "message": "Parametres et taux SAFE ERP enregistres avec succes !"}
 
 @app.get("/api/invoices")
 def get_invoices():
@@ -249,287 +238,14 @@ def generate_teif_xml(invoice_id: int):
 @app.get("/", response_class=HTMLResponse)
 def index_html():
     hw_id = get_hardware_id()
-    return f"""<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>SAFE PME Express — Facturation, Paie & e-Fatoura TEIF</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        :root {{
-            --safe-blue: #0f1e3a;
-            --safe-gold: #d4af37;
-        }}
-        body {{ background-color: #f4f6fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }}
-        .navbar-safe {{ background: linear-gradient(135deg, #0f1e3a 0%, #1e3a8a 100%); color: white; padding: 14px 24px; }}
-        .card-custom {{ border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; }}
-        .badge-safe {{ background-color: #d97706; color: white; font-weight: 600; padding: 4px 8px; border-radius: 4px; }}
-        .nav-pills .nav-link.active {{ background-color: #2563eb; font-weight: 600; }}
-        .table-custom th {{ background-color: #0f172a; color: white; font-size: 13px; }}
-    </style>
-</head>
-<body>
-    <nav class="navbar-safe d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center gap-3">
-            <span style="font-size: 28px;">🚀</span>
-            <div>
-                <h4 class="m-0 fw-bold">SAFE PME Express & E-Fatoura TEIF</h4>
-                <small class="text-white-50">Facturation rapide, Paie tunisienne, Comptabilité en Dinars Millimes & E-Facture Officielle</small>
-            </div>
-        </div>
-        <div class="text-end">
-            <span class="badge-safe">Verrou Hardware ID : {hw_id}</span>
-            <div class="small text-white-50 mt-1">Édition Autonome 2026 | Port 8006</div>
-        </div>
-    </nav>
-
-    <div class="container-fluid py-4 px-4">
-        <ul class="nav nav-pills mb-4 gap-2" id="pmeTabs">
-            <li class="nav-item"><button class="nav-link active" onclick="showTab('tab-factures')">🧾 Facturation & E-Fatoura TEIF</button></li>
-            <li class="nav-item"><button class="nav-link" onclick="showTab('tab-paie')">💵 Paie & Salariés (IRPP / CNSS)</button></li>
-            <li class="nav-item"><button class="nav-link" onclick="showTab('tab-settings')">⚙️ Paramètres & Taux SAFE (Modifiables)</button></li>
-        </ul>
-
-        <!-- TAB 1 : FACTURES -->
-        <div id="tab-factures" class="tab-pane-custom">
-            <div class="card card-custom p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="fw-bold m-0">Factures Clients Récentes & Fichiers XML e-Fatoura TEIF</h5>
-                    <button class="btn btn-primary btn-sm" onclick="alert('Module de création de facture ouvert !')">+ Nouvelle Facture</button>
-                </div>
-                <table class="table table-hover table-custom table-bordered">
-                    <thead>
-                        <tr>
-                            <th>N° Pièce</th>
-                            <th>Client</th>
-                            <th>Matricule Fiscal</th>
-                            <th>Date</th>
-                            <th class="text-end">Total HT (TND)</th>
-                            <th class="text-end">TVA (TND)</th>
-                            <th class="text-end">Timbre</th>
-                            <th class="text-end">Total TTC (TND)</th>
-                            <th class="text-center">Action e-Fatoura</th>
-                        </tr>
-                    </thead>
-                    <tbody id="invoices-tbody">
-                        <tr><td colspan="9" class="text-center">Chargement...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- TAB 2 : PAIE -->
-        <div id="tab-paie" class="tab-pane-custom d-none">
-            <div class="card card-custom p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="fw-bold m-0">Livre de Paie — Barème 8 Tranches & Déclarations Sociales</h5>
-                    <button class="btn btn-success btn-sm" onclick="alert('Simulation de paie lancée !')">🔄 Calculer les Bulletins du Mois</button>
-                </div>
-                <table class="table table-hover table-custom table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Matricule</th>
-                            <th>Salarié</th>
-                            <th>CIN</th>
-                            <th class="text-end">Salaire Brut</th>
-                            <th class="text-end">CNSS Salariale (9.68%)</th>
-                            <th class="text-end">IRPP</th>
-                            <th class="text-end">CSS (0.5%)</th>
-                            <th class="text-end">Net à Payer (TND)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="payroll-tbody">
-                        <tr><td colspan="8" class="text-center">Chargement...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- TAB 3 : PARAMÈTRES MODIFIABLES -->
-        <div id="tab-settings" class="tab-pane-custom d-none">
-            <div class="card card-custom p-4">
-                <h5 class="fw-bold mb-3">Configuration & Taux Légaux SAFE ERP (Dynamiquement Modifiables)</h5>
-                <form id="settingsForm" onsubmit="saveSettings(event)">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">Raison Sociale</label>
-                            <input type="text" id="cfg_name" class="form-control form-control-sm" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">Matricule Fiscal</label>
-                            <input type="text" id="cfg_mat" class="form-control form-control-sm" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">Registre de Commerce</label>
-                            <input type="text" id="cfg_rc" class="form-control form-control-sm">
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">Adresse</label>
-                            <input type="text" id="cfg_adresse" class="form-control form-control-sm">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-bold">Téléphone</label>
-                            <input type="text" id="cfg_tel" class="form-control form-control-sm">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-bold">E-mail</label>
-                            <input type="email" id="cfg_email" class="form-control form-control-sm">
-                        </div>
-
-                        <div class="col-12"><hr class="my-2"></div>
-                        <div class="col-12"><h6 class="fw-bold text-primary">Taux de Taxes & Cotisations (SAFE ERP)</h6></div>
-
-                        <div class="col-md-3">
-                            <label class="form-label small fw-bold">TVA Normale (%)</label>
-                            <input type="number" step="0.1" id="cfg_tva_normale" class="form-control form-control-sm">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-bold">TVA Intermédiaire (%)</label>
-                            <input type="number" step="0.1" id="cfg_tva_intermediaire" class="form-control form-control-sm">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-bold">TVA Réduite (%)</label>
-                            <input type="number" step="0.1" id="cfg_tva_reduite" class="form-control form-control-sm">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-bold">Timbre Fiscal (DT)</label>
-                            <input type="number" step="0.1" id="cfg_timbre" class="form-control form-control-sm">
-                        </div>
-
-                        <div class="col-md-3">
-                            <label class="form-label small fw-bold">CNSS Salariale (%)</label>
-                            <input type="number" step="0.01" id="cfg_cnss_sal" class="form-control form-control-sm">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-bold">CNSS Patronale (%)</label>
-                            <input type="number" step="0.01" id="cfg_cnss_pat" class="form-control form-control-sm">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-bold">CSS (%)</label>
-                            <input type="number" step="0.01" id="cfg_css" class="form-control form-control-sm">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-bold">Taux IS (%)</label>
-                            <input type="number" id="cfg_is" class="form-control form-control-sm">
-                        </div>
-
-                        <div class="col-12 text-end mt-3">
-                            <button type="submit" class="btn btn-primary fw-bold px-4">💾 Enregistrer Tous les Taux & Paramètres</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function showTab(tabId) {
-            document.querySelectorAll('.tab-pane-custom').forEach(el => el.classList.add('d-none'));
-            document.getElementById(tabId).classList.remove('d-none');
-            document.querySelectorAll('#pmeTabs .nav-link').forEach(el => el.classList.remove('active'));
-            event.target.classList.add('active');
-        }
-
-        async function loadInvoices() {
-            const res = await fetch('/api/invoices');
-            const data = await res.json();
-            const tbody = document.getElementById('invoices-tbody');
-            tbody.innerHTML = data.map(inv => `
-                <tr>
-                    <td class="fw-bold text-primary">${inv.numero}</td>
-                    <td>${inv.client_nom}</td>
-                    <td><code>${inv.client_mat}</code></td>
-                    <td>${inv.date_facture}</td>
-                    <td class="text-end fw-bold">${inv.total_ht.toFixed(3)}</td>
-                    <td class="text-end">${inv.total_tva.toFixed(3)}</td>
-                    <td class="text-end">${inv.timbre.toFixed(3)}</td>
-                    <td class="text-end fw-bold text-success">${inv.total_ttc.toFixed(3)} DT</td>
-                    <td class="text-center">
-                        <a href="/api/efatoura/xml/${inv.id}" target="_blank" class="btn btn-outline-dark btn-sm">📄 Télécharger XML TEIF</a>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        async function loadPayroll() {
-            const res = await fetch('/api/payroll');
-            const data = await res.json();
-            const tbody = document.getElementById('payroll-tbody');
-            tbody.innerHTML = data.map(emp => `
-                <tr>
-                    <td class="fw-bold">${emp.matricule}</td>
-                    <td>${emp.nom}</td>
-                    <td>${emp.cin}</td>
-                    <td class="text-end fw-bold">${emp.salaire_base.toFixed(3)}</td>
-                    <td class="text-end text-danger">${emp.cnss_salarie.toFixed(3)}</td>
-                    <td class="text-end text-danger">${emp.irpp.toFixed(3)}</td>
-                    <td class="text-end text-danger">${emp.css.toFixed(3)}</td>
-                    <td class="text-end fw-bold text-success">${emp.salaire_net.toFixed(3)} DT</td>
-                </tr>
-            `).join('');
-        }
-
-        async function loadSettings() {
-            const res = await fetch('/api/settings');
-            const s = await res.json();
-            document.getElementById('cfg_name').value = s.name || '';
-            document.getElementById('cfg_mat').value = s.matricule_fiscal || '';
-            document.getElementById('cfg_rc').value = s.registre_commerce || '';
-            document.getElementById('cfg_adresse').value = s.adresse || '';
-            document.getElementById('cfg_tel').value = s.telephone || '';
-            document.getElementById('cfg_email').value = s.email || '';
-            document.getElementById('cfg_tva_normale').value = s.tva_normale;
-            document.getElementById('cfg_tva_intermediaire').value = s.tva_intermediaire;
-            document.getElementById('cfg_tva_reduite').value = s.tva_reduite;
-            document.getElementById('cfg_timbre').value = s.timbre_fiscal;
-            document.getElementById('cfg_cnss_sal').value = s.cnss_salarie;
-            document.getElementById('cfg_cnss_pat').value = s.cnss_patronale;
-            document.getElementById('cfg_css').value = s.css;
-            document.getElementById('cfg_is').value = s.taux_is;
-        }
-
-        async function saveSettings(e) {
-            e.preventDefault();
-            const payload = {
-                name: document.getElementById('cfg_name').value,
-                matricule_fiscal: document.getElementById('cfg_mat').value,
-                registre_commerce: document.getElementById('cfg_rc').value,
-                adresse: document.getElementById('cfg_adresse').value,
-                telephone: document.getElementById('cfg_tel').value,
-                email: document.getElementById('cfg_email').value,
-                regime_tva: 'assujetti',
-                regime_fiscal: 'reel',
-                taux_is: parseInt(document.getElementById('cfg_is').value) || 15,
-                tva_normale: parseFloat(document.getElementById('cfg_tva_normale').value) || 19.0,
-                tva_intermediaire: parseFloat(document.getElementById('cfg_tva_intermediaire').value) || 13.0,
-                tva_reduite: parseFloat(document.getElementById('cfg_tva_reduite').value) || 7.0,
-                timbre_fiscal: parseFloat(document.getElementById('cfg_timbre').value) || 1.0,
-                cnss_salarie: parseFloat(document.getElementById('cfg_cnss_sal').value) || 9.68,
-                cnss_patronale: parseFloat(document.getElementById('cfg_cnss_pat').value) || 17.07,
-                css: parseFloat(document.getElementById('cfg_css').value) || 0.5,
-                tfp: 1.0,
-                foprolos: 1.0,
-                abattement_famille: 300.0,
-                abattement_enfant: 100.0
-            };
-            const res = await fetch('/api/settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const out = await res.json();
-            alert(out.message || 'Paramètres sauvegardés avec succès !');
-        }
-
-        window.onload = () => {
-            loadInvoices();
-            loadPayroll();
-            loadSettings();
-        };
-    </script>
-</body>
-</html>"""
+    # Read external html file or render template
+    html_file = os.path.join(os.path.dirname(__file__), "pme_index.html")
+    if os.path.exists(html_file):
+        with open(html_file, "r", encoding="utf-8") as f:
+            content = f.read()
+    else:
+        content = "<h2>SAFE PME Express</h2>"
+    return content.replace("{{HARDWARE_ID}}", hw_id)
 
 def open_browser():
     time.sleep(1.2)
