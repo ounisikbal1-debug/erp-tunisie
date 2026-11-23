@@ -1,33 +1,22 @@
 @echo off
 chcp 65001 >nul
-title SAFE PME Express et Facturation Rapide - SAFE Suite Tunisie
+title SAFE PME Express - Facturation, Paie & e-Fatoura TEIF (Port 8006)
 cls
 echo ===============================================================================
-echo   SAFE PME Express et Facturation Rapide
-echo   Facturation clients, achats, paie SCE, comptabilite TND millimes & e-Fatoura TEIF
-echo   Version 1.0.0 ^| Conforme Legislation Tunisienne
+echo   SAFE PME Express & e-Fatoura TEIF (Tunisie)
+echo   Facturation rapide, Paie SCE, Comptabilite TND & E-Facture Officielle
+echo   Version 1.0.0 ^| Port Dédié : 8006 ^| Conforme Législation Tunisienne
 echo ===============================================================================
 echo.
-echo Initialisation du service en local...
+cd /d "%~dp0"
 
-set "CORE_DIR=%~dp0..\..\SAFE_ERP_DRAFT 3"
-if not exist "%CORE_DIR%\LANCER_SAFE_ERP_LOCAL.ps1" (
-    set "CORE_DIR=%~dp0..\SAFE_ERP_DRAFT 3"
-)
-if not exist "%CORE_DIR%\LANCER_SAFE_ERP_LOCAL.ps1" (
-    set "CORE_DIR=C:\Users\USER\OneDrive\Desktop\SAFE_ERP_DRAFT 4\SAFE_ERP_DRAFT 3"
-)
+echo [1/2] Verification de l'environnement Python...
+python -m pip install --quiet fastapi uvicorn pydantic >nul 2>&1
 
-if not exist "%CORE_DIR%\LANCER_SAFE_ERP_LOCAL.ps1" (
-    echo [ERREUR] Le noyau SAFE ERP est introuvable dans : %CORE_DIR%
-    pause
-    exit /b 1
-)
-
-cd /d "%CORE_DIR%"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\LANCER_SAFE_ERP_LOCAL.ps1" -App "pme_express"
+echo [2/2] Demarrage du serveur autonome SAFE PME Express (Port 8006)...
+python standalone_pme_server.py
 if errorlevel 1 (
     echo.
-    echo [ERREUR] Erreur lors du demarrage du prologiciel.
+    echo [ERREUR] Impossible de lancer le serveur autonome SAFE PME Express.
     pause
 )
